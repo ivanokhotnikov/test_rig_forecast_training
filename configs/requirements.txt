@@ -1,0 +1,12 @@
+plotly
+streamlit
+tensorflow
+scikit-learn
+kfp
+google-cloud-storage
+google-cloud-aiplatform
+google-cloud-pipeline-components
+gcsfs
+yapf
+ipython
+openpyxl

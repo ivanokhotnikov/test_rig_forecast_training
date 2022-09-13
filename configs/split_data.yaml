@@ -1,0 +1,72 @@
+name: Split data
+description: Split processed data into train and test data.
+inputs:
+- {name: train_data_size, type: Float, description: Train-test split}
+- {name: processed_data, type: Dataset, description: Processed dataset}
+outputs:
+- {name: train_data, type: Dataset, description: Train dataset}
+- {name: test_data, type: Dataset, description: Test dataset}
+implementation:
+  container:
+    image: python:3.10-slim
+    command:
+    - sh
+    - -c
+    - |2
+
+      if ! [ -x "$(command -v pip)" ]; then
+          python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+      fi
+
+      PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'pandas' 'kfp==1.8.13' && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp -d)
+      printf "%s" "$0" > "$program_path/ephemeral_component.py"
+      python3 -m kfp.v2.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+    - |2+
+
+      import kfp
+      from kfp.v2 import dsl
+      from kfp.v2.dsl import *
+      from typing import *
+
+      def split_data(
+          train_data_size: float,
+          processed_data: Input[Dataset],
+          train_data: Output[Dataset],
+          test_data: Output[Dataset],
+      ) -> None:
+          """
+          Split processed data into train and test data.
+
+          Args:
+              train_data_size (float): Train-test split
+              processed_data (Input[Dataset]): Processed dataset
+              train_data (Output[Dataset]): Train dataset
+              test_data (Output[Dataset]): Test dataset
+          """
+          import os
+          import pandas as pd
+          processed_df = pd.read_csv(
+              processed_data.path + '.csv',
+              index_col=False,
+              header=0,
+          )
+          train_df = processed_df.loc[:int(len(processed_df) * train_data_size)]
+          test_df = processed_df.loc[int(len(processed_df) * train_data_size):]
+          train_df.to_csv(
+              train_data.path + '.csv',
+              index=False,
+          )
+          test_df.to_csv(
+              test_data.path + '.csv',
+              index=False,
+          )
+
+    args:
+    - --executor_input
+    - {executorInput: null}
+    - --function_to_execute
+    - split_data

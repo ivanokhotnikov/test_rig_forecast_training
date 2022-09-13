@@ -1,0 +1,88 @@
+name: Evaluate
+description: Evaluates the trained keras model, saves the evaludation metrics to the
+  metadata store
+inputs:
+- {name: feature, type: String, description: Feature strin to train on}
+- {name: lookback, type: Integer, description: Length of the lookback window}
+- {name: batch_size, type: Integer, description: Batch size}
+- {name: test_data, type: Dataset, description: Train dataset}
+- {name: scaler_model, type: Model, description: Scaler model}
+- {name: keras_model, type: Model, description: Keras model}
+- {name: metrics, type: Metrics}
+implementation:
+  container:
+    image: python:3.10
+    command:
+    - sh
+    - -c
+    - |2
+
+      if ! [ -x "$(command -v pip)" ]; then
+          python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+      fi
+
+      PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'pandas' 'scikit-learn' 'tensorflow' 'keras' 'kfp==1.8.13' && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp -d)
+      printf "%s" "$0" > "$program_path/ephemeral_component.py"
+      python3 -m kfp.v2.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+    - |2+
+
+      import kfp
+      from kfp.v2 import dsl
+      from kfp.v2.dsl import *
+      from typing import *
+
+      def evaluate(
+          feature: str,
+          lookback: int,
+          batch_size: int,
+          test_data: Input[Dataset],
+          scaler_model: Input[Model],
+          keras_model: Input[Model],
+          metrics: Metrics,
+      ) -> None:
+          """Evaluates the trained keras model, saves the evaludation metrics to the metadata store
+
+          Args:
+              feature (str): Feature strin to train on
+              lookback (int): Length of the lookback window
+              batch_size (int): Batch size
+              test_data (Input[Dataset]): Train dataset
+              scaler_model (Input[Model]): Scaler model
+              keras_model (Input[Model]): Keras model
+              eval_metrics (Output[Metrics]): Metrics
+          """
+          import joblib
+          import json
+
+          import keras
+          import numpy as np
+          import pandas as pd
+          test_df = pd.read_csv(test_data.path + '.csv', index_col=False)
+          test_data = test_df[feature].values.reshape(-1, 1)
+          scaler = joblib.load(scaler_model.path + f'_{feature}.joblib')
+          scaled_test = scaler.transform(test_data)
+          x_test, y_test = [], []
+          for i in range(lookback, len(scaled_test)):
+              x_test.append(scaled_test[i - lookback:i])
+              y_test.append(scaled_test[i])
+          x_test = np.stack(x_test)
+          y_test = np.stack(y_test)
+          forecaster = keras.models.load_model(keras_model.path + f'_{feature}.h5')
+          results = forecaster.evaluate(x_test,
+                                        y_test,
+                                        verbose=1,
+                                        batch_size=batch_size,
+                                        return_dict=True)
+          with open(metrics.path + f'_{feature}.json', 'w') as metrics_file:
+              metrics_file.write(json.dumps(results))
+          metrics.metadata['feature'] = feature
+
+    args:
+    - --executor_input
+    - {executorInput: null}
+    - --function_to_execute
+    - evaluate
