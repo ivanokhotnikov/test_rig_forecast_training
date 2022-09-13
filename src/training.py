@@ -3,7 +3,7 @@ from datetime import datetime
 
 import google.cloud.aiplatform as aip
 from kfp.v2 import compiler
-from kfp.v2.dsl import (Artifact, importer, component, pipeline, ParallelFor)
+from kfp.v2.dsl import (Artifact, importer, pipeline, ParallelFor)
 
 from components import (build_features, read_raw_data, split_data, train,
                         evaluate, load_final_features)
