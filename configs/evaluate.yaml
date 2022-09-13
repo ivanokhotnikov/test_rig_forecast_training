@@ -8,6 +8,7 @@ inputs:
 - {name: test_data, type: Dataset, description: Train dataset}
 - {name: scaler_model, type: Model, description: Scaler model}
 - {name: keras_model, type: Model, description: Keras model}
+outputs:
 - {name: metrics, type: Metrics}
 implementation:
   container:
@@ -42,7 +43,7 @@ implementation:
           test_data: Input[Dataset],
           scaler_model: Input[Model],
           keras_model: Input[Model],
-          metrics: Metrics,
+          metrics: Output[Metrics],
       ) -> None:
           """Evaluates the trained keras model, saves the evaludation metrics to the metadata store
 

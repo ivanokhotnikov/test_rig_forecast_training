@@ -6,7 +6,7 @@ from kfp.v2 import compiler
 from kfp.v2.dsl import (Artifact, importer, component, pipeline, ParallelFor)
 
 from components import (build_features, read_raw_data, split_data, train,
-                        evaluate)
+                        evaluate, load_final_features)
 
 PROJECT_ID = 'test-rig-349313'
 REGION = 'europe-west2'
@@ -17,24 +17,6 @@ PIPELINES_BUCKET_URI = f'gs://{PIPELINES_BUCKET}'
 
 TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')
 DISPLAY_NAME = 'train_' + TIMESTAMP
-
-
-@component(
-    base_image='python:3.10-slim',
-    output_component_file=os.path.join('configs', 'load_final_features.yaml'),
-)
-def load_final_features(data_bucket_name: str) -> str:
-    import os
-    import json
-    with open(os.path.join('gcs', data_bucket_name, 'final_features.json'),
-              'r') as final_features_file:
-        final_features = json.loads(final_features_file.read())
-    return json.dumps(final_features)
-
-
-@component
-def print_op(msg: str) -> None:
-    print(msg)
 
 
 @pipeline(name='training-pipeline', pipeline_root=PIPELINES_BUCKET_URI)
@@ -93,7 +75,7 @@ compiler.Compiler().compile(
     package_path=os.path.join('configs', 'training_pipeline.json'),
 )
 job = aip.PipelineJob(
-    enable_caching=False,
+    enable_caching=True,
     display_name=DISPLAY_NAME,
     pipeline_root=PIPELINES_BUCKET_URI,
     template_path=os.path.join('configs', 'training_pipeline.json'),
