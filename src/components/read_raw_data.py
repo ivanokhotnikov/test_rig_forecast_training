@@ -56,10 +56,10 @@ def read_raw_data(
         interim_data.path + '.csv',
         index=False,
     )
-    # interim_data_path = os.path.join('gcs', data_bucket_name, 'interim')
-    # final_df.to_csv(
-    #     os.path.join(interim_data_path, 'interim_data.csv'),
-    #     index=False,
-    # )
+    interim_data_path = os.path.join('gcs', data_bucket_name, 'interim')
+    final_df.to_csv(
+        os.path.join(interim_data_path, 'interim_data.csv'),
+        index=False,
+    )
     with open(all_features.path, 'w') as features_file:
         features_file.write(json.dumps(final_df.columns.to_list()))

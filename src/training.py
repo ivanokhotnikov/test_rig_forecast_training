@@ -37,6 +37,7 @@ def training_pipeline(
     ).set_display_name('Load raw features')
     read_raw_data_task = read_raw_data(data_bucket_name=data_bucket)
     build_features_task = build_features(
+        data_bucket_name=data_bucket,
         raw_features=raw_features_import.output,
         interim_data=read_raw_data_task.outputs['interim_data'],
     )

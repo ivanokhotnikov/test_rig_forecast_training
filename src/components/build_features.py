@@ -8,6 +8,7 @@ from kfp.v2.dsl import Artifact, Dataset, Input, Output, component
     output_component_file=os.path.join('configs', 'build_features.yaml'),
 )
 def build_features(
+    data_bucket_name: str,
     raw_features: Input[Artifact],
     interim_data: Input[Dataset],
     processed_data: Output[Dataset],
@@ -16,6 +17,7 @@ def build_features(
     Read the interim data, build features (float down casting, removes NaNs and the step zero data, calculates and adds to the processed data the power and time features), saves the processed data.
 
     Args:
+        data_bucket_name (str): GCS data bucket
         raw_features (Input[Artifact]): Raw features json artifact
         interim_data (Input[Dataset]): Interim dataset
         processed_data (Output[Dataset]): Processed dataset
@@ -65,6 +67,11 @@ def build_features(
     df['RUNNING_HOURS'] = (df['RUNNING_SECONDS'] / 3600).astype(float)
     df.columns = df.columns.str.lstrip()
     df.columns = df.columns.str.replace(' ', '_')
+    processed_data_path = os.path.join('gcs', data_bucket_name, 'processed')
+    df.to_csv(
+        os.path.join(processed_data_path, 'processed_data.csv'),
+        index=False,
+    )
     df.to_csv(
         processed_data.path + '.csv',
         index=False,
