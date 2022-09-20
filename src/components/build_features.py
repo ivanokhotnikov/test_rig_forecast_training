@@ -1,4 +1,5 @@
 import os
+
 from kfp.v2.dsl import Artifact, Dataset, Input, Output, component
 
 
@@ -24,6 +25,8 @@ def build_features(
     """
     import json
     import math
+    import os
+
     import pandas as pd
 
     with open(raw_features.path, 'r') as features_file:

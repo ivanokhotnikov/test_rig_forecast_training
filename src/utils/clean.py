@@ -12,3 +12,6 @@ if __name__ == '__main__':
     for art in aip.Artifact.list():
         art.delete()
         time.sleep(2)
+    for model in aip.Model.list():
+        model.delete()
+        time.sleep(2)

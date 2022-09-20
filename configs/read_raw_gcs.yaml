@@ -5,7 +5,7 @@ inputs:
 - {name: data_bucket_name, type: String, description: GCS data bucket}
 outputs:
 - {name: interim_data, type: Dataset, description: Interim data}
-- {name: all_features, type: Artifact}
+- {name: all_features, type: Artifact, description: Raw features artifact}
 implementation:
   container:
     image: python:3.10-slim
@@ -42,12 +42,12 @@ implementation:
           Args:
               data_bucket_name (str): GCS data bucket
               interim_data (Output[Dataset]): Interim data
-              allfeatures (Output[Artifact]): Raw features artifact
+              all_features (Output[Artifact]): Raw features artifact
           """
-          import os
           import gc
           import json
           import logging
+          import os
 
           import pandas as pd
 
@@ -81,11 +81,11 @@ implementation:
               interim_data.path + '.csv',
               index=False,
           )
-          # interim_data_path = os.path.join('gcs', data_bucket_name, 'interim')
-          # final_df.to_csv(
-          #     os.path.join(interim_data_path, 'interim_data.csv'),
-          #     index=False,
-          # )
+          interim_data_path = os.path.join('gcs', data_bucket_name, 'interim')
+          final_df.to_csv(
+              os.path.join(interim_data_path, 'interim_data.csv'),
+              index=False,
+          )
           with open(all_features.path, 'w') as features_file:
               features_file.write(json.dumps(final_df.columns.to_list()))
 

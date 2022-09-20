@@ -47,8 +47,8 @@ implementation:
               train_data (Output[Dataset]): Train dataset
               test_data (Output[Dataset]): Test dataset
           """
-          import os
           import pandas as pd
+
           processed_df = pd.read_csv(
               processed_data.path + '.csv',
               index_col=False,

@@ -1,5 +1,6 @@
 import os
-from kfp.v2.dsl import Dataset, Output, Artifact, component
+
+from kfp.v2.dsl import Artifact, Dataset, Output, component
 
 
 @component(
@@ -17,12 +18,12 @@ def read_raw_data(
     Args:
         data_bucket_name (str): GCS data bucket
         interim_data (Output[Dataset]): Interim data
-        allfeatures (Output[Artifact]): Raw features artifact
+        all_features (Output[Artifact]): Raw features artifact
     """
-    import os
     import gc
     import json
     import logging
+    import os
 
     import pandas as pd
 

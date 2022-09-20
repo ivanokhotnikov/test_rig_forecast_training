@@ -12,7 +12,7 @@ outputs:
 - {name: metrics, type: Metrics}
 implementation:
   container:
-    image: python:3.10
+    image: tensorflow/tensorflow:latest
     command:
     - sh
     - -c
@@ -22,7 +22,7 @@ implementation:
           python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
       fi
 
-      PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'pandas' 'scikit-learn' 'tensorflow' 'keras' 'kfp==1.8.13' && "$0" "$@"
+      PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'pandas' 'scikit-learn' 'kfp==1.8.13' && "$0" "$@"
     - sh
     - -ec
     - |
@@ -56,12 +56,13 @@ implementation:
               keras_model (Input[Model]): Keras model
               eval_metrics (Output[Metrics]): Metrics
           """
-          import joblib
           import json
 
-          import keras
+          import joblib
           import numpy as np
           import pandas as pd
+          from tensorflow import keras
+
           test_df = pd.read_csv(test_data.path + '.csv', index_col=False)
           test_data = test_df[feature].values.reshape(-1, 1)
           scaler = joblib.load(scaler_model.path + f'_{feature}.joblib')

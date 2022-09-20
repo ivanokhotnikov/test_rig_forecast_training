@@ -18,7 +18,7 @@ outputs:
 - {name: metrics, type: Metrics, description: Metrics}
 implementation:
   container:
-    image: python:3.10-slim
+    image: tensorflow/tensorflow:latest
     command:
     - sh
     - -c
@@ -28,7 +28,7 @@ implementation:
           python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
       fi
 
-      PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'pandas' 'scikit-learn' 'tensorflow' 'keras' 'kfp==1.8.13' && "$0" "$@"
+      PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'pandas' 'scikit-learn' 'google-cloud-aiplatform' 'kfp==1.8.13' && "$0" "$@"
     - sh
     - -ec
     - |
@@ -70,13 +70,15 @@ implementation:
               keras_model (Output[Model]): Keras model
               metrics (Output[Metrics]): Metrics
           """
-          import joblib
+          import os
           import json
 
-          import keras
+          import google.cloud.aiplatform as aip
+          import joblib
           import numpy as np
           import pandas as pd
           from sklearn.preprocessing import MinMaxScaler
+          from tensorflow import keras
 
           train_df = pd.read_csv(train_data.path + '.csv', index_col=False)
           train_data = train_df[feature].values.reshape(-1, 1)
@@ -100,26 +102,36 @@ implementation:
               loss=keras.losses.mean_squared_error,
               metrics=keras.metrics.RootMeanSquaredError(),
               optimizer=keras.optimizers.RMSprop(learning_rate=learning_rate))
-          history = forecaster.fit(
-              x_train,
-              y_train,
-              shuffle=False,
-              epochs=epochs,
-              batch_size=batch_size,
-              validation_split=0.2,
-              verbose=1,
-              callbacks=[
-                  keras.callbacks.EarlyStopping(patience=patience,
-                                                monitor='val_loss',
-                                                mode='min',
-                                                verbose=1,
-                                                restore_best_weights=True),
-                  keras.callbacks.ReduceLROnPlateau(monitor='val_loss',
-                                                    factor=0.75,
-                                                    patience=patience // 2,
-                                                    verbose=1,
-                                                    mode='min'),
-              ])
+          tensorboard = aip.Tensorboard.create(display_name=f'{feature}', )
+          history = forecaster.fit(x_train,
+                                   y_train,
+                                   shuffle=False,
+                                   epochs=epochs,
+                                   batch_size=batch_size,
+                                   validation_split=0.2,
+                                   verbose=1,
+                                   callbacks=[
+                                       keras.callbacks.EarlyStopping(
+                                           patience=patience,
+                                           monitor='val_loss',
+                                           mode='min',
+                                           verbose=1,
+                                           restore_best_weights=True,
+                                       ),
+                                       keras.callbacks.ReduceLROnPlateau(
+                                           monitor='val_loss',
+                                           factor=0.75,
+                                           patience=patience // 2,
+                                           verbose=1,
+                                           mode='min',
+                                       ),
+                                       keras.callbacks.TensorBoard(
+                                           log_dir=os.path.join(
+                                               'gcs', 'test_rig_pipelines',
+                                               f'{feature}'),
+                                           histogram_freq=1,
+                                       )
+                                   ])
           with open(metrics.path + f'_{feature}.json', 'w') as mterics_file:
               for k, v in history.history.items():
                   history.history[k] = [float(vi) for vi in v]

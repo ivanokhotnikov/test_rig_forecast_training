@@ -3,20 +3,27 @@ from datetime import datetime
 
 import google.cloud.aiplatform as aip
 from kfp.v2 import compiler
-from kfp.v2.dsl import (Artifact, importer, pipeline, ParallelFor)
+from kfp.v2.dsl import Artifact, ParallelFor, importer, pipeline
 
-from components import (build_features, read_raw_data, split_data, train,
-                        evaluate, load_final_features)
+from components import (build_features, evaluate, load_final_features,
+                        read_raw_data, split_data, train)
 
 PROJECT_ID = 'test-rig-349313'
 REGION = 'europe-west2'
-DATA_BUCKET = 'test_rig_data'
-DATA_BUCKET_URI = f'gs://{DATA_BUCKET}'
-PIPELINES_BUCKET = 'test_rig_pipelines'
-PIPELINES_BUCKET_URI = f'gs://{PIPELINES_BUCKET}'
 
+DATA_BUCKET_NAME = 'test_rig_data'
+PIPELINES_BUCKET_NAME = 'test_rig_pipelines'
+PIPELINES_BUCKET_URI = f'gs://{PIPELINES_BUCKET_NAME}'
 TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')
 DISPLAY_NAME = 'train_' + TIMESTAMP
+
+TRAIN_GPU, TRAIN_NGPU = (aip.gapic.AcceleratorType.NVIDIA_TESLA_T4, 1)
+TRAIN_VERSION = 'tf-cpu.2-9'
+TRAIN_IMAGE = f'{REGION.split("-")[0]}-docker.pkg.dev/vertex-ai/training/{TRAIN_VERSION}:latest'
+
+MACHINE_TYPE = 'n1-standard'
+VCPU = '4'
+TRAIN_COMPUTE = MACHINE_TYPE + '-' + VCPU
 
 
 @pipeline(name='training-pipeline', pipeline_root=PIPELINES_BUCKET_URI)
@@ -34,7 +41,7 @@ def training_pipeline(
         artifact_uri='gs://test_rig_data/raw_features.json',
         artifact_class=Artifact,
         reimport=True,
-    ).set_display_name('Load raw features')
+    )
     read_raw_data_task = read_raw_data(data_bucket_name=data_bucket)
     build_features_task = build_features(
         data_bucket_name=data_bucket,
@@ -47,7 +54,7 @@ def training_pipeline(
     final_features_import = load_final_features(data_bucket_name=data_bucket)
     with ParallelFor(final_features_import.output) as feature:
         train_task = train(
-            feature,
+            feature=feature,
             lookback=lookback,
             lstm_units=lstm_units,
             learning_rate=learning_rate,
@@ -57,7 +64,7 @@ def training_pipeline(
             train_data=split_data_task.outputs['train_data'],
         )
         evaluate_task = evaluate(
-            feature,
+            feature=feature,
             lookback=lookback,
             batch_size=batch_size,
             test_data=split_data_task.outputs['test_data'],
@@ -81,7 +88,7 @@ job = aip.PipelineJob(
     pipeline_root=PIPELINES_BUCKET_URI,
     template_path=os.path.join('configs', 'training_pipeline.json'),
     parameter_values={
-        'data_bucket': DATA_BUCKET,
+        'data_bucket': DATA_BUCKET_NAME,
         'train_data_size': 0.8,
         'lookback': 120,
         'lstm_units': 3,

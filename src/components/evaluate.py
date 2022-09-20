@@ -1,15 +1,16 @@
 import os
-from kfp.v2.dsl import component, Input, Dataset, Model, Metrics, Output
+
+from kfp.v2.dsl import Dataset, Input, Metrics, Model, Output, component
 
 
-@component(base_image='python:3.10',
-           packages_to_install=[
-               'pandas',
-               'scikit-learn',
-               'tensorflow',
-               'keras',
-           ],
-           output_component_file=os.path.join('configs', 'evaluate.yaml'))
+@component(
+    base_image='tensorflow/tensorflow:latest',
+    packages_to_install=[
+        'pandas',
+        'scikit-learn',
+    ],
+    output_component_file=os.path.join('configs', 'evaluate.yaml'),
+)
 def evaluate(
     feature: str,
     lookback: int,
@@ -30,12 +31,13 @@ def evaluate(
         keras_model (Input[Model]): Keras model
         eval_metrics (Output[Metrics]): Metrics
     """
-    import joblib
     import json
 
-    import keras
+    import joblib
     import numpy as np
     import pandas as pd
+    from tensorflow import keras
+
     test_df = pd.read_csv(test_data.path + '.csv', index_col=False)
     test_data = test_df[feature].values.reshape(-1, 1)
     scaler = joblib.load(scaler_model.path + f'_{feature}.joblib')

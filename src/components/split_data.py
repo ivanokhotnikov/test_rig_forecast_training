@@ -1,5 +1,6 @@
 import os
-from kfp.v2.dsl import component, Dataset, Output, Input
+
+from kfp.v2.dsl import Dataset, Input, Output, component
 
 
 @component(base_image='python:3.10-slim',
@@ -20,8 +21,8 @@ def split_data(
         train_data (Output[Dataset]): Train dataset
         test_data (Output[Dataset]): Test dataset
     """
-    import os
     import pandas as pd
+
     processed_df = pd.read_csv(
         processed_data.path + '.csv',
         index_col=False,

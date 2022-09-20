@@ -4,12 +4,11 @@ from kfp.v2.dsl import Dataset, Input, Metrics, Model, Output, component
 
 
 @component(
-    base_image='python:3.10-slim',
+    base_image='tensorflow/tensorflow:latest',
     packages_to_install=[
         'pandas',
         'scikit-learn',
-        'tensorflow',
-        'keras',
+        'google-cloud-aiplatform',
     ],
     output_component_file=os.path.join('configs', 'train.yaml'),
 )
@@ -41,13 +40,15 @@ def train(
         keras_model (Output[Model]): Keras model
         metrics (Output[Metrics]): Metrics
     """
-    import joblib
+    import os
     import json
 
-    import keras
+    import google.cloud.aiplatform as aip
+    import joblib
     import numpy as np
     import pandas as pd
     from sklearn.preprocessing import MinMaxScaler
+    from tensorflow import keras
 
     train_df = pd.read_csv(train_data.path + '.csv', index_col=False)
     train_data = train_df[feature].values.reshape(-1, 1)
@@ -71,26 +72,36 @@ def train(
         loss=keras.losses.mean_squared_error,
         metrics=keras.metrics.RootMeanSquaredError(),
         optimizer=keras.optimizers.RMSprop(learning_rate=learning_rate))
-    history = forecaster.fit(
-        x_train,
-        y_train,
-        shuffle=False,
-        epochs=epochs,
-        batch_size=batch_size,
-        validation_split=0.2,
-        verbose=1,
-        callbacks=[
-            keras.callbacks.EarlyStopping(patience=patience,
-                                          monitor='val_loss',
-                                          mode='min',
-                                          verbose=1,
-                                          restore_best_weights=True),
-            keras.callbacks.ReduceLROnPlateau(monitor='val_loss',
-                                              factor=0.75,
-                                              patience=patience // 2,
-                                              verbose=1,
-                                              mode='min'),
-        ])
+    tensorboard = aip.Tensorboard.create(display_name=f'{feature}', )
+    history = forecaster.fit(x_train,
+                             y_train,
+                             shuffle=False,
+                             epochs=epochs,
+                             batch_size=batch_size,
+                             validation_split=0.2,
+                             verbose=1,
+                             callbacks=[
+                                 keras.callbacks.EarlyStopping(
+                                     patience=patience,
+                                     monitor='val_loss',
+                                     mode='min',
+                                     verbose=1,
+                                     restore_best_weights=True,
+                                 ),
+                                 keras.callbacks.ReduceLROnPlateau(
+                                     monitor='val_loss',
+                                     factor=0.75,
+                                     patience=patience // 2,
+                                     verbose=1,
+                                     mode='min',
+                                 ),
+                                 keras.callbacks.TensorBoard(
+                                     log_dir=os.path.join(
+                                         'gcs', 'test_rig_pipelines',
+                                         f'{feature}'),
+                                     histogram_freq=1,
+                                 )
+                             ])
     with open(metrics.path + f'_{feature}.json', 'w') as mterics_file:
         for k, v in history.history.items():
             history.history[k] = [float(vi) for vi in v]

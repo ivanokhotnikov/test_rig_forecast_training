@@ -3,6 +3,7 @@ description: Read the interim data, build features (float down casting, removes 
   and the step zero data, calculates and adds to the processed data the power and
   time features), saves the processed data.
 inputs:
+- {name: data_bucket_name, type: String, description: GCS data bucket}
 - {name: raw_features, type: Artifact, description: Raw features json artifact}
 - {name: interim_data, type: Dataset, description: Interim dataset}
 outputs:
@@ -34,6 +35,7 @@ implementation:
       from typing import *
 
       def build_features(
+          data_bucket_name: str,
           raw_features: Input[Artifact],
           interim_data: Input[Dataset],
           processed_data: Output[Dataset],
@@ -42,12 +44,15 @@ implementation:
           Read the interim data, build features (float down casting, removes NaNs and the step zero data, calculates and adds to the processed data the power and time features), saves the processed data.
 
           Args:
+              data_bucket_name (str): GCS data bucket
               raw_features (Input[Artifact]): Raw features json artifact
               interim_data (Input[Dataset]): Interim dataset
               processed_data (Output[Dataset]): Processed dataset
           """
           import json
           import math
+          import os
+
           import pandas as pd
 
           with open(raw_features.path, 'r') as features_file:
@@ -91,6 +96,11 @@ implementation:
           df['RUNNING_HOURS'] = (df['RUNNING_SECONDS'] / 3600).astype(float)
           df.columns = df.columns.str.lstrip()
           df.columns = df.columns.str.replace(' ', '_')
+          processed_data_path = os.path.join('gcs', data_bucket_name, 'processed')
+          df.to_csv(
+              os.path.join(processed_data_path, 'processed_data.csv'),
+              index=False,
+          )
           df.to_csv(
               processed_data.path + '.csv',
               index=False,

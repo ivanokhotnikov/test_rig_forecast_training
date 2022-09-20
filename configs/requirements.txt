@@ -1,12 +1,8 @@
 plotly
 streamlit
-tensorflow
+tensorflow==2.9
 scikit-learn
 kfp
-google-cloud-storage
 google-cloud-aiplatform
 google-cloud-pipeline-components
-gcsfs
-yapf
-ipython
 openpyxl
