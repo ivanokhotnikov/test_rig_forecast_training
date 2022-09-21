@@ -70,9 +70,9 @@ def build_features(
     df['RUNNING_HOURS'] = (df['RUNNING_SECONDS'] / 3600).astype(float)
     df.columns = df.columns.str.lstrip()
     df.columns = df.columns.str.replace(' ', '_')
-    processed_data_path = os.path.join('gcs', data_bucket_name, 'processed')
     df.to_csv(
-        os.path.join(processed_data_path, 'processed_data.csv'),
+        os.path.join('gcs', data_bucket_name, 'processed',
+                     'processed_data.csv'),
         index=False,
     )
     df.to_csv(

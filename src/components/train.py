@@ -71,12 +71,6 @@ def train(
         scaler,
         os.path.join('gcs', 'models_forecasting', f'{feature}.joblib'),
     )
-    # _ = aip.Model.upload(
-    #     display_name=f'{feature}_scaler_model',
-    #     artifact_uri=os.path.join('gcs', 'models_forecasting'),
-    #     serving_container_image_uri=TRAIN_IMAGE,
-    #     location=REGION,
-    # )
     x_train, y_train = [], []
     for i in range(lookback, len(scaled_train)):
         x_train.append(scaled_train[i - lookback:i])
@@ -93,8 +87,11 @@ def train(
         loss=keras.losses.mean_squared_error,
         metrics=keras.metrics.RootMeanSquaredError(),
         optimizer=keras.optimizers.RMSprop(learning_rate=learning_rate))
-    tensorboard = aip.Tensorboard.create(display_name=f'{feature}',
-                                         location=REGION)
+    tensorboard = aip.Tensorboard.create(
+        project=PROJECT_ID,
+        display_name=feature,
+        location=REGION,
+    )
     aip.init(
         experiment=feature.lower().replace('_', '-'),
         experiment_tensorboard=tensorboard,
@@ -103,7 +100,7 @@ def train(
         staging_bucket=PIPELINES_BUCKET_URI,
     )
     aip.start_run(
-        run=feature.lower().replace('_', '-'),
+        run=feature,
         tensorboard=tensorboard,
     )
     history = forecaster.fit(x_train,
@@ -133,24 +130,19 @@ def train(
                                          'gcs', 'test_rig_pipelines',
                                          f'{feature}'),
                                      histogram_freq=1,
+                                     write_graph=True,
+                                     write_images=True,
+                                     update_freq='epoch',
                                  )
                              ])
     with open(metrics.path + f'_{feature}.json', 'w') as metrics_file:
         for k, v in history.history.items():
             history.history[k] = [float(vi) for vi in v]
             metrics.log_metric(k, history.history[k])
-            if 'val' in k:
-                aip.log_metrics({k: v})
-            # else:
-                # aip.log_time_series_metrics(metrics={k: v})
         metrics.log_metric('feature', feature)
         metrics_file.write(json.dumps(history.history))
     keras_model.metadata['feature'] = feature
     forecaster.save(keras_model.path + f'_{feature}.h5')
     forecaster.save(os.path.join('gcs', 'models_forecasting', f'{feature}.h5'))
-    _ = aip.Model.upload(
-        display_name=f'{feature}_keras_model',
-        artifact_uri=os.path.join('gcs', 'models_forecasting'),
-        serving_container_image_uri=TRAIN_IMAGE,
-        location=REGION,
-    )
+    aip.end_run()
+    aip.ExperimentRun.delete(run_name=feature)
