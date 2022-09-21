@@ -50,12 +50,33 @@ def train(
     from sklearn.preprocessing import MinMaxScaler
     from tensorflow import keras
 
+    PROJECT_ID = 'test-rig-349313'
+    REGION = 'europe-west2'
+    TRAIN_GPU, TRAIN_NGPU = (aip.gapic.AcceleratorType.NVIDIA_TESLA_T4, 1)
+    TRAIN_VERSION = 'tf-gpu.2-9'
+    TRAIN_IMAGE = f'{REGION.split("-")[0]}-docker.pkg.dev/vertex-ai/training/{TRAIN_VERSION}:latest'
+    PIPELINES_BUCKET_NAME = 'test_rig_pipelines'
+    PIPELINES_BUCKET_URI = f'gs://{PIPELINES_BUCKET_NAME}'
+
     train_df = pd.read_csv(train_data.path + '.csv', index_col=False)
     train_data = train_df[feature].values.reshape(-1, 1)
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaled_train = scaler.fit_transform(train_data)
     scaler_model.metadata['feature'] = feature
-    joblib.dump(scaler, scaler_model.path + f'_{feature}.joblib')
+    joblib.dump(
+        scaler,
+        scaler_model.path + f'_{feature}.joblib',
+    )
+    joblib.dump(
+        scaler,
+        os.path.join('gcs', 'models_forecasting', f'{feature}.joblib'),
+    )
+    # _ = aip.Model.upload(
+    #     display_name=f'{feature}_scaler_model',
+    #     artifact_uri=os.path.join('gcs', 'models_forecasting'),
+    #     serving_container_image_uri=TRAIN_IMAGE,
+    #     location=REGION,
+    # )
     x_train, y_train = [], []
     for i in range(lookback, len(scaled_train)):
         x_train.append(scaled_train[i - lookback:i])
@@ -72,7 +93,19 @@ def train(
         loss=keras.losses.mean_squared_error,
         metrics=keras.metrics.RootMeanSquaredError(),
         optimizer=keras.optimizers.RMSprop(learning_rate=learning_rate))
-    tensorboard = aip.Tensorboard.create(display_name=f'{feature}', )
+    tensorboard = aip.Tensorboard.create(display_name=f'{feature}',
+                                         location=REGION)
+    aip.init(
+        experiment=feature.lower().replace('_', '-'),
+        experiment_tensorboard=tensorboard,
+        project=PROJECT_ID,
+        location=REGION,
+        staging_bucket=PIPELINES_BUCKET_URI,
+    )
+    aip.start_run(
+        run=feature.lower().replace('_', '-'),
+        tensorboard=tensorboard,
+    )
     history = forecaster.fit(x_train,
                              y_train,
                              shuffle=False,
@@ -102,11 +135,22 @@ def train(
                                      histogram_freq=1,
                                  )
                              ])
-    with open(metrics.path + f'_{feature}.json', 'w') as mterics_file:
+    with open(metrics.path + f'_{feature}.json', 'w') as metrics_file:
         for k, v in history.history.items():
             history.history[k] = [float(vi) for vi in v]
             metrics.log_metric(k, history.history[k])
-        mterics_file.write(json.dumps(history.history))
-    metrics.metadata['feature'] = feature
+            if 'val' in k:
+                aip.log_metrics({k: v})
+            # else:
+                # aip.log_time_series_metrics(metrics={k: v})
+        metrics.log_metric('feature', feature)
+        metrics_file.write(json.dumps(history.history))
     keras_model.metadata['feature'] = feature
     forecaster.save(keras_model.path + f'_{feature}.h5')
+    forecaster.save(os.path.join('gcs', 'models_forecasting', f'{feature}.h5'))
+    _ = aip.Model.upload(
+        display_name=f'{feature}_keras_model',
+        artifact_uri=os.path.join('gcs', 'models_forecasting'),
+        serving_container_image_uri=TRAIN_IMAGE,
+        location=REGION,
+    )
