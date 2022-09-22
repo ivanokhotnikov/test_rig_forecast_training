@@ -87,22 +87,13 @@ def train(
         loss=keras.losses.mean_squared_error,
         metrics=keras.metrics.RootMeanSquaredError(),
         optimizer=keras.optimizers.RMSprop(learning_rate=learning_rate))
-    tensorboard = aip.Tensorboard.create(
-        project=PROJECT_ID,
-        display_name=feature,
-        location=REGION,
-    )
     aip.init(
         experiment=feature.lower().replace('_', '-'),
-        experiment_tensorboard=tensorboard,
         project=PROJECT_ID,
         location=REGION,
         staging_bucket=PIPELINES_BUCKET_URI,
     )
-    aip.start_run(
-        run=feature,
-        tensorboard=tensorboard,
-    )
+    aip.start_run(run=feature.lower().replace('_', '-'), )
     history = forecaster.fit(x_train,
                              y_train,
                              shuffle=False,
@@ -145,4 +136,3 @@ def train(
     forecaster.save(keras_model.path + f'_{feature}.h5')
     forecaster.save(os.path.join('gcs', 'models_forecasting', f'{feature}.h5'))
     aip.end_run()
-    aip.ExperimentRun.delete(run_name=feature)
