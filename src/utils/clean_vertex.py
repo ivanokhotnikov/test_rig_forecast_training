@@ -11,8 +11,10 @@ VERTEX_REGIONS = {
     'us-west4'
 }
 PROJECT_ID = 'test-rig-349313'
+SLEEP_TIME = 1.1
 
-if __name__ == '__main__':
+
+def clean_vertex():
     for loc in VERTEX_REGIONS:
         aip.init(
             project=PROJECT_ID,
@@ -21,19 +23,26 @@ if __name__ == '__main__':
         try:
             for job in aip.CustomJob.list():
                 job.delete()
-                time.sleep(1.1)
+                time.sleep(SLEEP_TIME)
             for art in aip.Artifact.list():
                 art.delete()
-                time.sleep(1.1)
+                time.sleep(SLEEP_TIME)
             for model in aip.Model.list():
                 model.delete()
-                time.sleep(1.1)
+                time.sleep(SLEEP_TIME)
             for tb in aip.Tensorboard.list():
                 tb.delete()
-                time.sleep(1.1)
-            for experiment in aip.Experiment.list():
-                experiment.delete()
-                time.sleep(1.1)
+                time.sleep(SLEEP_TIME)
+            for exp in aip.Experiment.list():
+                for exp_run in aip.ExperimentRun.list(experiment=exp):
+                    exp_run.delete()
+                    time.sleep(SLEEP_TIME)
+                exp.delete()
+                time.sleep(SLEEP_TIME)
         except NotFound as NotFoundError:
             logging.info(f'{NotFoundError} in {loc}')
             continue
+
+
+if __name__ == '__main__':
+    clean_vertex()

@@ -8,6 +8,7 @@ from kfp.v2.dsl import Dataset, Input, Metrics, Model, Output, component
     packages_to_install=[
         'pandas',
         'scikit-learn',
+        'google-cloud-aiplatform',
     ],
     output_component_file=os.path.join('configs', 'evaluate.yaml'),
 )
@@ -56,4 +57,6 @@ def evaluate(
                                   return_dict=True)
     with open(metrics.path + f'_{feature}.json', 'w') as metrics_file:
         metrics_file.write(json.dumps(results))
+    for k, v in results.items():
+        metrics.log_metric(k, v)
     metrics.metadata['feature'] = feature
