@@ -26,7 +26,7 @@ MACHINE_TYPE = 'n1-standard'
 VCPU = '4'
 TRAIN_COMPUTE = MACHINE_TYPE + '-' + VCPU
 
-
+    
 @pipeline(name='training-pipeline', pipeline_root=PIPELINES_BUCKET_URI)
 def training_pipeline(
     data_bucket: str,

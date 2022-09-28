@@ -40,8 +40,9 @@ def train(
         keras_model (Output[Model]): Keras model
         metrics (Output[Metrics]): Metrics
     """
-    import os
     import json
+    import os
+    from datetime import datetime
 
     import google.cloud.aiplatform as aip
     import joblib
@@ -49,16 +50,19 @@ def train(
     import pandas as pd
     from sklearn.preprocessing import MinMaxScaler
     from tensorflow import keras
-    from datetime import datetime
 
     PROJECT_ID = 'test-rig-349313'
     REGION = 'europe-west2'
     TRAIN_GPU, TRAIN_NGPU = (aip.gapic.AcceleratorType.NVIDIA_TESLA_T4, 1)
     TRAIN_VERSION = 'tf-gpu.2-9'
     TRAIN_IMAGE = f'{REGION.split("-")[0]}-docker.pkg.dev/vertex-ai/training/{TRAIN_VERSION}:latest'
+    DEPLOY_IMAGE = TRAIN_IMAGE
+    MODELS_BUCKET_NAME = 'models_forecasting'
+    MODELS_BUCKET_URI = f'gs://{MODELS_BUCKET_NAME}'
     PIPELINES_BUCKET_NAME = 'test_rig_pipelines'
     PIPELINES_BUCKET_URI = f'gs://{PIPELINES_BUCKET_NAME}'
     TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')
+    EXP_NAME = feature.lower().replace('_', '-')
 
     train_df = pd.read_csv(train_data.path + '.csv', index_col=False)
     train_data = train_df[feature].values.reshape(-1, 1)
@@ -89,10 +93,9 @@ def train(
         loss=keras.losses.mean_squared_error,
         metrics=keras.metrics.RootMeanSquaredError(),
         optimizer=keras.optimizers.RMSprop(learning_rate=learning_rate))
-    if feature.lower().replace(
-            '_', '-') not in [exp.name for exp in aip.Experiment.list()]:
+    if EXP_NAME not in [exp.name for exp in aip.Experiment.list()]:
         aip.init(
-            experiment=feature.lower().replace('_', '-'),
+            experiment=EXP_NAME,
             project=PROJECT_ID,
             location=REGION,
             staging_bucket=PIPELINES_BUCKET_URI,
@@ -103,7 +106,7 @@ def train(
             location=REGION,
             staging_bucket=PIPELINES_BUCKET_URI,
         )
-    aip.start_run(run='-'.join((feature.lower().replace('_', '-'), TIMESTAMP)))
+    aip.start_run(run='-'.join((EXP_NAME, TIMESTAMP)))
     history = forecaster.fit(x_train,
                              y_train,
                              shuffle=False,
@@ -128,8 +131,11 @@ def train(
                                  ),
                                  keras.callbacks.TensorBoard(
                                      log_dir=os.path.join(
-                                         'gcs', 'test_rig_pipelines', 'tb',
-                                         f'{feature}'),
+                                         'gcs',
+                                         'test_rig_pipelines',
+                                         'tb',
+                                         f'{feature}',
+                                     ),
                                      histogram_freq=1,
                                      write_graph=True,
                                      write_images=True,
@@ -143,4 +149,10 @@ def train(
     keras_model.metadata['feature'] = feature
     forecaster.save(keras_model.path + f'_{feature}.h5')
     forecaster.save(os.path.join('gcs', 'models_forecasting', f'{feature}.h5'))
+    _ = aip.Model.upload(
+        display_name=f'{feature}',
+        artifact_uri='gs://models_forecasting',
+        serving_container_image_uri=DEPLOY_IMAGE,
+        is_default_version=True,
+    )
     aip.end_run()
