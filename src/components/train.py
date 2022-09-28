@@ -49,6 +49,7 @@ def train(
     import pandas as pd
     from sklearn.preprocessing import MinMaxScaler
     from tensorflow import keras
+    from datetime import datetime
 
     PROJECT_ID = 'test-rig-349313'
     REGION = 'europe-west2'
@@ -57,11 +58,12 @@ def train(
     TRAIN_IMAGE = f'{REGION.split("-")[0]}-docker.pkg.dev/vertex-ai/training/{TRAIN_VERSION}:latest'
     PIPELINES_BUCKET_NAME = 'test_rig_pipelines'
     PIPELINES_BUCKET_URI = f'gs://{PIPELINES_BUCKET_NAME}'
+    TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')
 
     train_df = pd.read_csv(train_data.path + '.csv', index_col=False)
     train_data = train_df[feature].values.reshape(-1, 1)
     scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled_train = scaler.fit_transform(train_data)
+    scaled_train_data = scaler.fit_transform(train_data)
     scaler_model.metadata['feature'] = feature
     joblib.dump(
         scaler,
@@ -72,9 +74,9 @@ def train(
         os.path.join('gcs', 'models_forecasting', f'{feature}.joblib'),
     )
     x_train, y_train = [], []
-    for i in range(lookback, len(scaled_train)):
-        x_train.append(scaled_train[i - lookback:i])
-        y_train.append(scaled_train[i])
+    for i in range(lookback, len(scaled_train_data)):
+        x_train.append(scaled_train_data[i - lookback:i])
+        y_train.append(scaled_train_data[i])
     x_train = np.stack(x_train)
     y_train = np.stack(y_train)
     forecaster = keras.models.Sequential()
@@ -87,13 +89,21 @@ def train(
         loss=keras.losses.mean_squared_error,
         metrics=keras.metrics.RootMeanSquaredError(),
         optimizer=keras.optimizers.RMSprop(learning_rate=learning_rate))
-    aip.init(
-        experiment=feature.lower().replace('_', '-'),
-        project=PROJECT_ID,
-        location=REGION,
-        staging_bucket=PIPELINES_BUCKET_URI,
-    )
-    aip.start_run(run=feature.lower().replace('_', '-'), )
+    if feature.lower().replace(
+            '_', '-') not in [exp.name for exp in aip.Experiment.list()]:
+        aip.init(
+            experiment=feature.lower().replace('_', '-'),
+            project=PROJECT_ID,
+            location=REGION,
+            staging_bucket=PIPELINES_BUCKET_URI,
+        )
+    else:
+        aip.init(
+            project=PROJECT_ID,
+            location=REGION,
+            staging_bucket=PIPELINES_BUCKET_URI,
+        )
+    aip.start_run(run='-'.join((feature.lower().replace('_', '-'), TIMESTAMP)))
     history = forecaster.fit(x_train,
                              y_train,
                              shuffle=False,
@@ -118,7 +128,7 @@ def train(
                                  ),
                                  keras.callbacks.TensorBoard(
                                      log_dir=os.path.join(
-                                         'gcs', 'test_rig_pipelines',
+                                         'gcs', 'test_rig_pipelines', 'tb',
                                          f'{feature}'),
                                      histogram_freq=1,
                                      write_graph=True,
@@ -126,12 +136,10 @@ def train(
                                      update_freq='epoch',
                                  )
                              ])
-    with open(metrics.path + f'_{feature}.json', 'w') as metrics_file:
-        for k, v in history.history.items():
-            history.history[k] = [float(vi) for vi in v]
-            metrics.log_metric(k, history.history[k])
-        metrics.log_metric('feature', feature)
-        metrics_file.write(json.dumps(history.history))
+    for k, v in history.history.items():
+        history.history[k] = [float(vi) for vi in v]
+        metrics.log_metric(k, history.history[k])
+    metrics.metadata['feature'] = feature
     keras_model.metadata['feature'] = feature
     forecaster.save(keras_model.path + f'_{feature}.h5')
     forecaster.save(os.path.join('gcs', 'models_forecasting', f'{feature}.h5'))
