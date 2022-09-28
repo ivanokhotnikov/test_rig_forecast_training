@@ -22,7 +22,7 @@ implementation:
           python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
       fi
 
-      PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'pandas' 'scikit-learn' 'kfp==1.8.13' && "$0" "$@"
+      PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'pandas' 'scikit-learn' 'google-cloud-aiplatform' 'kfp==1.8.14' && "$0" "$@"
     - sh
     - -ec
     - |
@@ -79,8 +79,8 @@ implementation:
                                         verbose=1,
                                         batch_size=batch_size,
                                         return_dict=True)
-          with open(metrics.path + f'_{feature}.json', 'w') as metrics_file:
-              metrics_file.write(json.dumps(results))
+          for k, v in results.items():
+              metrics.log_metric(k, v)
           metrics.metadata['feature'] = feature
 
     args:
