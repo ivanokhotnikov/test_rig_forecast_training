@@ -7,6 +7,7 @@ from kfp.v2.dsl import Artifact, ParallelFor, importer, pipeline
 
 from components import (build_features, evaluate, load_final_features,
                         read_raw_data, split_data, train)
+from utils import download_logs
 
 PROJECT_ID = 'test-rig-349313'
 REGION = 'europe-west2'
@@ -73,29 +74,31 @@ def training_pipeline(
         )
 
 
-aip.init(
-    project=PROJECT_ID,
-    location=REGION,
-    staging_bucket=PIPELINES_BUCKET_URI,
-)
-compiler.Compiler().compile(
-    pipeline_func=training_pipeline,
-    package_path=os.path.join('configs', 'training_pipeline.json'),
-)
-job = aip.PipelineJob(
-    enable_caching=True,
-    display_name=DISPLAY_NAME,
-    pipeline_root=PIPELINES_BUCKET_URI,
-    template_path=os.path.join('configs', 'training_pipeline.json'),
-    parameter_values={
-        'data_bucket': DATA_BUCKET_NAME,
-        'train_data_size': 0.8,
-        'lookback': 120,
-        'lstm_units': 3,
-        'learning_rate': 0.1,
-        'epochs': 3,
-        'batch_size': 256,
-        'patience': 5
-    },
-)
-job.run()
+if __name__ == '__main__':
+    aip.init(
+        project=PROJECT_ID,
+        location=REGION,
+        staging_bucket=PIPELINES_BUCKET_URI,
+    )
+    compiler.Compiler().compile(
+        pipeline_func=training_pipeline,
+        package_path=os.path.join('configs', 'training_pipeline.json'),
+    )
+    job = aip.PipelineJob(
+        enable_caching=True,
+        display_name=DISPLAY_NAME,
+        pipeline_root=PIPELINES_BUCKET_URI,
+        template_path=os.path.join('configs', 'training_pipeline.json'),
+        parameter_values={
+            'data_bucket': DATA_BUCKET_NAME,
+            'train_data_size': 0.8,
+            'lookback': 120,
+            'lstm_units': 3,
+            'learning_rate': 0.1,
+            'epochs': 3,
+            'batch_size': 256,
+            'patience': 5
+        },
+    )
+    job.run()
+    download_logs
