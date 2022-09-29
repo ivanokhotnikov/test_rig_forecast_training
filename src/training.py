@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 
 import google.cloud.aiplatform as aip
 from kfp.v2 import compiler
@@ -8,25 +7,10 @@ from kfp.v2.dsl import Artifact, ParallelFor, importer, pipeline
 from components import (build_features, evaluate, load_final_features,
                         read_raw_data, split_data, train)
 from utils import download_logs
+from utils.constants import (DATA_BUCKET_NAME, DISPLAY_NAME,
+                             PIPELINES_BUCKET_URI, PROJECT_ID, REGION)
 
-PROJECT_ID = 'test-rig-349313'
-REGION = 'europe-west2'
 
-DATA_BUCKET_NAME = 'test_rig_data'
-PIPELINES_BUCKET_NAME = 'test_rig_pipelines'
-PIPELINES_BUCKET_URI = f'gs://{PIPELINES_BUCKET_NAME}'
-TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')
-DISPLAY_NAME = 'train_' + TIMESTAMP
-
-TRAIN_GPU, TRAIN_NGPU = (aip.gapic.AcceleratorType.NVIDIA_TESLA_T4, 1)
-TRAIN_VERSION = 'tf-cpu.2-9'
-TRAIN_IMAGE = f'{REGION.split("-")[0]}-docker.pkg.dev/vertex-ai/training/{TRAIN_VERSION}:latest'
-
-MACHINE_TYPE = 'n1-standard'
-VCPU = '4'
-TRAIN_COMPUTE = MACHINE_TYPE + '-' + VCPU
-
-    
 @pipeline(name='training-pipeline', pipeline_root=PIPELINES_BUCKET_URI)
 def training_pipeline(
     data_bucket: str,
@@ -95,10 +79,10 @@ if __name__ == '__main__':
             'lookback': 120,
             'lstm_units': 3,
             'learning_rate': 0.1,
-            'epochs': 3,
+            'epochs': 1,
             'batch_size': 256,
-            'patience': 5
+            'patience': 3
         },
     )
     job.run()
-    download_logs
+    download_logs()

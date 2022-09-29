@@ -1,14 +1,12 @@
+import os
+
+from utils.constants import DATA_BUCKET_NAME, STORAGE_CLIENT, PIPELINES_BUCKET_URI
+
+
 def download_logs():
-    import os
     from json import loads
 
-    from google.cloud.storage import Client
-
-    DATA_BUCKET_NAME = 'test_rig_data'
-    PIPELINES_BUCKET_NAME = 'test_rig_pipelines'
-    PIPELINES_BUCKET_URI = f'gs://{PIPELINES_BUCKET_NAME}'
-    storage_client = Client()
-    data_bucket = storage_client.get_bucket(DATA_BUCKET_NAME)
+    data_bucket = STORAGE_CLIENT.get_bucket(DATA_BUCKET_NAME)
 
     features_blob = data_bucket.get_blob('final_features.json')
     features = loads(features_blob.download_as_text())

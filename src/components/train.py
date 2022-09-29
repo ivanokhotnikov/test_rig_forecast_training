@@ -149,10 +149,4 @@ def train(
     keras_model.metadata['feature'] = feature
     forecaster.save(keras_model.path + f'_{feature}.h5')
     forecaster.save(os.path.join('gcs', 'models_forecasting', f'{feature}.h5'))
-    _ = aip.Model.upload(
-        display_name=f'{feature}',
-        artifact_uri='gs://models_forecasting',
-        serving_container_image_uri=DEPLOY_IMAGE,
-        is_default_version=True,
-    )
     aip.end_run()

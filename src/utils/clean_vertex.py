@@ -6,13 +6,8 @@ import time
 import google.cloud.aiplatform as aip
 from google.api_core.exceptions import NotFound
 
-VERTEX_REGIONS = {
-    'europe-west1', 'europe-west2', 'europe-west3', 'europe-west4',
-    'europe-west6', 'europe-west9', 'us-central1', 'us-west1', 'us-west2',
-    'us-west4'
-}
-PROJECT_ID = 'test-rig-349313'
-SLEEP_TIME = 1.1
+from utils.constants import (PIPELINES_BUCKET_NAME, PROJECT_ID, PROJECT_NUMBER,
+                             SLEEP_TIME, STORAGE_CLIENT, VERTEX_REGIONS)
 
 
 def clean_vertex(
@@ -21,9 +16,12 @@ def clean_vertex(
     clean_models: bool = False,
     clean_tensorboards: bool = False,
     clean_experiments: bool = False,
+    clean_metadata_store: bool = False,
+    clean_tensorboard_events: bool = False,
     clean_all: bool = False,
     verbosity: bool = False,
 ):
+
     if verbosity:
         logging.basicConfig(encoding='utf-8', level=logging.INFO)
     else:
@@ -33,6 +31,9 @@ def clean_vertex(
     logging.info(f'clean_models is set to {clean_models}')
     logging.info(f'clean_tensorboards is set to {clean_tensorboards}')
     logging.info(f'clean_experiments is set to {clean_experiments}')
+    logging.info(f'clean_metadata_store is set to {clean_metadata_store}')
+    logging.info(
+        f'clean_tensorboard_events is set to {clean_tensorboard_events}')
     logging.info(f'clean_all is set to {clean_all}')
     if clean_all:
         clean_custom_jobs = True
@@ -40,12 +41,16 @@ def clean_vertex(
         clean_models = True
         clean_tensorboards = True
         clean_experiments = True
+        clean_metadata_store = True
+        clean_tensorboard_events = True
     elif not any([
             clean_custom_jobs,
             clean_artifacts,
             clean_models,
             clean_tensorboards,
             clean_experiments,
+            clean_metadata_store,
+            clean_tensorboard_events,
     ]):
         logging.info(f'No flags set to clean!')
         sys.exit()
@@ -86,19 +91,77 @@ def clean_vertex(
                     exp.delete()
                     time.sleep(SLEEP_TIME)
                 logging.info(f'Experiments have been cleaned in {loc}')
+            if clean_metadata_store:
+                for blob in STORAGE_CLIENT.list_blobs(
+                        bucket_or_name=PIPELINES_BUCKET_NAME,
+                        prefix=PROJECT_NUMBER):
+                    blob.delete()
+                for blob in STORAGE_CLIENT.list_blobs(
+                        bucket_or_name=PIPELINES_BUCKET_NAME,
+                        prefix='vertex_ai_auto_staging'):
+                    blob.delete()
+                logging.info(f'Metadata store has been cleaned in {loc}')
+            if clean_tensorboard_events:
+                for blob in STORAGE_CLIENT.list_blobs(
+                        bucket_or_name=PIPELINES_BUCKET_NAME, prefix='tb'):
+                    blob.delete()
+                logging.info(f'Tensorboard events have been cleaned in {loc}')
         except NotFound as NotFoundError:
             logging.info(f'{NotFoundError} in {loc}')
             continue
 
 
-if __name__ == '__main__':
+def parse_agruments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-custom_jobs', '--clean_custom_jobs', action='store_true')
-    parser.add_argument('-artifacts', '--clean_artifacts', action='store_true')
-    parser.add_argument('-models', '--clean_models', action='store_true')
-    parser.add_argument('-tensorboards', '--clean_tensorboards', action='store_true')
-    parser.add_argument('-experiments', '--clean_experiments', action='store_true')
-    parser.add_argument('-all', '--clean_all', action='store_true')
-    parser.add_argument('-v', '--verbosity', action='store_true')
+    parser.add_argument(
+        '-custom_jobs',
+        '--clean_custom_jobs',
+        action='store_true',
+    )
+    parser.add_argument(
+        '-artifacts',
+        '--clean_artifacts',
+        action='store_true',
+    )
+    parser.add_argument(
+        '-models',
+        '--clean_models',
+        action='store_true',
+    )
+    parser.add_argument(
+        '-tensorboards',
+        '--clean_tensorboards',
+        action='store_true',
+    )
+    parser.add_argument(
+        '-experiments',
+        '--clean_experiments',
+        action='store_true',
+    )
+    parser.add_argument(
+        '-metadata',
+        '--clean_metadata_store',
+        action='store_true',
+    )
+    parser.add_argument(
+        '-tb_events',
+        '--clean_tensorboard_events',
+        action='store_true',
+    )
+    parser.add_argument(
+        '-all',
+        '--clean_all',
+        action='store_true',
+    )
+    parser.add_argument(
+        '-v',
+        '--verbosity',
+        action='store_true',
+    )
     args = parser.parse_args()
+    return args
+
+
+if __name__ == '__main__':
+    args = parse_agruments()
     clean_vertex(**vars(args))
