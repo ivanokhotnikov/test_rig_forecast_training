@@ -135,6 +135,7 @@ def train(
                                          'test_rig_pipelines',
                                          'tb',
                                          f'{feature}',
+                                         TIMESTAMP,
                                      ),
                                      histogram_freq=1,
                                      write_graph=True,

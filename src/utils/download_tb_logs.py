@@ -3,7 +3,7 @@ import os
 from utils.constants import DATA_BUCKET_NAME, STORAGE_CLIENT, PIPELINES_BUCKET_URI
 
 
-def download_logs():
+def download_tb_logs():
     from json import loads
 
     data_bucket = STORAGE_CLIENT.get_bucket(DATA_BUCKET_NAME)
@@ -16,4 +16,4 @@ def download_logs():
 
 
 if __name__ == '__main__':
-    download_logs()
+    download_tb_logs()

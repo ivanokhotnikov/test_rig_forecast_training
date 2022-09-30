@@ -1,14 +1,15 @@
 import os
+from datetime import datetime
 
 import google.cloud.aiplatform as aip
 from kfp.v2 import compiler
 from kfp.v2.dsl import Artifact, ParallelFor, importer, pipeline
 
-from components import (build_features, evaluate, load_final_features,
+from components import (build_features, evaluate, import_final_features,
                         read_raw_data, split_data, train)
-from utils import download_logs
-from utils.constants import (DATA_BUCKET_NAME, DISPLAY_NAME,
-                             PIPELINES_BUCKET_URI, PROJECT_ID, REGION)
+from utils import download_tb_logs
+from utils.constants import (DATA_BUCKET_NAME, PIPELINES_BUCKET_URI,
+                             PROJECT_ID, REGION)
 
 
 @pipeline(name='training-pipeline', pipeline_root=PIPELINES_BUCKET_URI)
@@ -25,7 +26,6 @@ def training_pipeline(
     raw_features_import = importer(
         artifact_uri='gs://test_rig_data/raw_features.json',
         artifact_class=Artifact,
-        reimport=True,
     )
     read_raw_data_task = read_raw_data(data_bucket_name=data_bucket)
     build_features_task = build_features(
@@ -36,7 +36,7 @@ def training_pipeline(
     split_data_task = split_data(
         train_data_size=train_data_size,
         processed_data=build_features_task.outputs['processed_data'])
-    final_features_import = load_final_features(data_bucket_name=data_bucket)
+    final_features_import = import_final_features(data_bucket_name=data_bucket)
     with ParallelFor(final_features_import.output) as feature:
         train_task = train(
             feature=feature,
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     )
     job = aip.PipelineJob(
         enable_caching=True,
-        display_name=DISPLAY_NAME,
+        display_name='train_' + datetime.now().strftime('%Y%m%d%H%M%S'),
         pipeline_root=PIPELINES_BUCKET_URI,
         template_path=os.path.join('configs', 'training_pipeline.json'),
         parameter_values={
@@ -79,10 +79,11 @@ if __name__ == '__main__':
             'lookback': 120,
             'lstm_units': 3,
             'learning_rate': 0.1,
-            'epochs': 1,
+            'epochs': 3,
             'batch_size': 256,
             'patience': 3
         },
     )
     job.run()
-    download_logs()
+    download_tb_logs()
+    

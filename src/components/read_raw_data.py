@@ -30,6 +30,7 @@ def read_raw_data(
     logging.basicConfig(level=logging.INFO)
     final_df = pd.DataFrame()
     raw_data_path = os.path.join('gcs', data_bucket_name, 'raw')
+    units = []
     for file in os.listdir(raw_data_path):
         logging.info(f'Reading {file} from {raw_data_path}')
         try:
@@ -47,6 +48,14 @@ def read_raw_data(
                     index_col=False,
                 )
             logging.info(f'{file} was read!')
+            name_list = file.split('-')
+            try:
+                unit = int(name_list[0][-3:].lstrip('0D'))
+            except ValueError:
+                unit = int(name_list[0].split('_')[0][-3:].lstrip('0D'))
+            units.append(unit)
+            current_df['UNIT'] = unit
+            current_df['TEST'] = int(units.count(unit))
             final_df = pd.concat((final_df, current_df), ignore_index=True)
             del current_df
             gc.collect()

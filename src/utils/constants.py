@@ -1,8 +1,5 @@
-from datetime import datetime
 import google.cloud.aiplatform as aip
 import google.cloud.storage as storage
-
-TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')
 
 PROJECT_ID = 'test-rig-349313'
 REGION = 'europe-west2'
@@ -12,8 +9,6 @@ DATA_BUCKET_NAME = 'test_rig_data'
 DATA_BUCKET_URI = f'gs://{DATA_BUCKET_NAME}'
 PIPELINES_BUCKET_NAME = 'test_rig_pipelines'
 PIPELINES_BUCKET_URI = f'gs://{PIPELINES_BUCKET_NAME}'
-
-DISPLAY_NAME = 'train_' + TIMESTAMP
 
 TRAIN_GPU, TRAIN_NGPU = (aip.gapic.AcceleratorType.NVIDIA_TESLA_T4, 1)
 TRAIN_VERSION = 'tf-cpu.2-9'
