@@ -6,7 +6,7 @@ import time
 import google.cloud.aiplatform as aip
 from google.api_core.exceptions import NotFound
 
-from constants import (PIPELINES_BUCKET_NAME, PROJECT_ID, PROJECT_NUMBER,
+from utils.constants import (PIPELINES_BUCKET_NAME, PROJECT_ID, PROJECT_NUMBER,
                              SLEEP_TIME, STORAGE_CLIENT, VERTEX_REGIONS)
 
 

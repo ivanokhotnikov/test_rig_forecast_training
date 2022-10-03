@@ -86,4 +86,3 @@ if __name__ == '__main__':
     )
     job.run()
     download_tb_logs()
-    

@@ -137,7 +137,7 @@
                     "componentInputParameter": "pipelineparam--batch_size"
                   },
                   "feature": {
-                    "componentInputParameter": "pipelineparam--load-final-features-Output-loop-item"
+                    "componentInputParameter": "pipelineparam--import-final-features-Output-loop-item"
                   },
                   "lookback": {
                     "componentInputParameter": "pipelineparam--lookback"
@@ -169,7 +169,7 @@
                     "componentInputParameter": "pipelineparam--epochs"
                   },
                   "feature": {
-                    "componentInputParameter": "pipelineparam--load-final-features-Output-loop-item"
+                    "componentInputParameter": "pipelineparam--import-final-features-Output-loop-item"
                   },
                   "learning_rate": {
                     "componentInputParameter": "pipelineparam--learning_rate"
@@ -213,14 +213,14 @@
             "pipelineparam--epochs": {
               "type": "INT"
             },
+            "pipelineparam--import-final-features-Output": {
+              "type": "STRING"
+            },
+            "pipelineparam--import-final-features-Output-loop-item": {
+              "type": "STRING"
+            },
             "pipelineparam--learning_rate": {
               "type": "DOUBLE"
-            },
-            "pipelineparam--load-final-features-Output": {
-              "type": "STRING"
-            },
-            "pipelineparam--load-final-features-Output-loop-item": {
-              "type": "STRING"
             },
             "pipelineparam--lookback": {
               "type": "INT"
@@ -250,6 +250,23 @@
           }
         }
       },
+      "comp-import-final-features": {
+        "executorLabel": "exec-import-final-features",
+        "inputDefinitions": {
+          "parameters": {
+            "data_bucket_name": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
       "comp-importer": {
         "executorLabel": "exec-importer",
         "inputDefinitions": {
@@ -266,23 +283,6 @@
                 "schemaTitle": "system.Artifact",
                 "schemaVersion": "0.0.1"
               }
-            }
-          }
-        }
-      },
-      "comp-load-final-features": {
-        "executorLabel": "exec-load-final-features",
-        "inputDefinitions": {
-          "parameters": {
-            "data_bucket_name": {
-              "type": "STRING"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "parameters": {
-            "Output": {
-              "type": "STRING"
             }
           }
         }
@@ -448,6 +448,26 @@
             "image": "tensorflow/tensorflow:latest"
           }
         },
+        "exec-import-final-features": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "import_final_features"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef import_final_features(data_bucket_name: str) -> str:\n    import os\n    import json\n    with open(os.path.join('gcs', data_bucket_name, 'final_features.json'),\n              'r') as final_features_file:\n        final_features = json.loads(final_features_file.read())\n    return json.dumps(final_features)\n\n"
+            ],
+            "image": "python:3.10-slim"
+          }
+        },
         "exec-importer": {
           "importer": {
             "artifactUri": {
@@ -459,26 +479,6 @@
               "schemaTitle": "system.Artifact",
               "schemaVersion": "0.0.1"
             }
-          }
-        },
-        "exec-load-final-features": {
-          "container": {
-            "args": [
-              "--executor_input",
-              "{{$}}",
-              "--function_to_execute",
-              "load_final_features"
-            ],
-            "command": [
-              "sh",
-              "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
-              "sh",
-              "-ec",
-              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef load_final_features(data_bucket_name: str) -> str:\n    import os\n    import json\n    with open(os.path.join('gcs', data_bucket_name, 'final_features.json'),\n              'r') as final_features_file:\n        final_features = json.loads(final_features_file.read())\n    return json.dumps(final_features)\n\n"
-            ],
-            "image": "python:3.10-slim"
           }
         },
         "exec-read-raw-data": {
@@ -536,7 +536,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef train(\n    feature: str,\n    lookback: int,\n    lstm_units: int,\n    learning_rate: float,\n    epochs: int,\n    batch_size: int,\n    patience: int,\n    train_data: Input[Dataset],\n    scaler_model: Output[Model],\n    keras_model: Output[Model],\n    metrics: Output[Metrics],\n) -> None:\n    \"\"\"Instantiates, trains the RNN model on the train dataset. Saves the trained scaler and the keras model to the metadata store, saves the evaluation metrics file as well.\n\n    Args:\n        feature (str): Feature string to train on\n        lookback (int): Length of the lookback window\n        lstm_units (int): Number of the LSTM units in the RNN\n        learning_rate (float): Initial learning rate\n        epochs (int): Number of epochs to train\n        batch_size (int): Batch size\n        patience (int): Number of patient epochs before the callbacks activate\n        train_data (Input[Dataset]): Train dataset\n        scaler_model (Output[Model]): Scaler model\n        keras_model (Output[Model]): Keras model\n        metrics (Output[Metrics]): Metrics\n    \"\"\"\n    import json\n    import os\n    from datetime import datetime\n\n    import google.cloud.aiplatform as aip\n    import joblib\n    import numpy as np\n    import pandas as pd\n    from sklearn.preprocessing import MinMaxScaler\n    from tensorflow import keras\n\n    PROJECT_ID = 'test-rig-349313'\n    REGION = 'europe-west2'\n    TRAIN_GPU, TRAIN_NGPU = (aip.gapic.AcceleratorType.NVIDIA_TESLA_T4, 1)\n    TRAIN_VERSION = 'tf-gpu.2-9'\n    TRAIN_IMAGE = f'{REGION.split(\"-\")[0]}-docker.pkg.dev/vertex-ai/training/{TRAIN_VERSION}:latest'\n    DEPLOY_IMAGE = TRAIN_IMAGE\n    MODELS_BUCKET_NAME = 'models_forecasting'\n    MODELS_BUCKET_URI = f'gs://{MODELS_BUCKET_NAME}'\n    PIPELINES_BUCKET_NAME = 'test_rig_pipelines'\n    PIPELINES_BUCKET_URI = f'gs://{PIPELINES_BUCKET_NAME}'\n    TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')\n    EXP_NAME = feature.lower().replace('_', '-')\n\n    train_df = pd.read_csv(train_data.path + '.csv', index_col=False)\n    train_data = train_df[feature].values.reshape(-1, 1)\n    scaler = MinMaxScaler(feature_range=(0, 1))\n    scaled_train_data = scaler.fit_transform(train_data)\n    scaler_model.metadata['feature'] = feature\n    joblib.dump(\n        scaler,\n        scaler_model.path + f'_{feature}.joblib',\n    )\n    joblib.dump(\n        scaler,\n        os.path.join('gcs', 'models_forecasting', f'{feature}.joblib'),\n    )\n    x_train, y_train = [], []\n    for i in range(lookback, len(scaled_train_data)):\n        x_train.append(scaled_train_data[i - lookback:i])\n        y_train.append(scaled_train_data[i])\n    x_train = np.stack(x_train)\n    y_train = np.stack(y_train)\n    forecaster = keras.models.Sequential()\n    forecaster.add(\n        keras.layers.LSTM(lstm_units,\n                          input_shape=(x_train.shape[1], x_train.shape[2]),\n                          return_sequences=False))\n    forecaster.add(keras.layers.Dense(1))\n    forecaster.compile(\n        loss=keras.losses.mean_squared_error,\n        metrics=keras.metrics.RootMeanSquaredError(),\n        optimizer=keras.optimizers.RMSprop(learning_rate=learning_rate))\n    if EXP_NAME not in [exp.name for exp in aip.Experiment.list()]:\n        aip.init(\n            experiment=EXP_NAME,\n            project=PROJECT_ID,\n            location=REGION,\n            staging_bucket=PIPELINES_BUCKET_URI,\n        )\n    else:\n        aip.init(\n            project=PROJECT_ID,\n            location=REGION,\n            staging_bucket=PIPELINES_BUCKET_URI,\n        )\n    aip.start_run(run='-'.join((EXP_NAME, TIMESTAMP)))\n    history = forecaster.fit(x_train,\n                             y_train,\n                             shuffle=False,\n                             epochs=epochs,\n                             batch_size=batch_size,\n                             validation_split=0.2,\n                             verbose=1,\n                             callbacks=[\n                                 keras.callbacks.EarlyStopping(\n                                     patience=patience,\n                                     monitor='val_loss',\n                                     mode='min',\n                                     verbose=1,\n                                     restore_best_weights=True,\n                                 ),\n                                 keras.callbacks.ReduceLROnPlateau(\n                                     monitor='val_loss',\n                                     factor=0.75,\n                                     patience=patience // 2,\n                                     verbose=1,\n                                     mode='min',\n                                 ),\n                                 keras.callbacks.TensorBoard(\n                                     log_dir=os.path.join(\n                                         'gcs',\n                                         'test_rig_pipelines',\n                                         'tb',\n                                         f'{feature}',\n                                     ),\n                                     histogram_freq=1,\n                                     write_graph=True,\n                                     write_images=True,\n                                     update_freq='epoch',\n                                 )\n                             ])\n    for k, v in history.history.items():\n        history.history[k] = [float(vi) for vi in v]\n        metrics.log_metric(k, history.history[k])\n    metrics.metadata['feature'] = feature\n    keras_model.metadata['feature'] = feature\n    forecaster.save(keras_model.path + f'_{feature}.h5')\n    forecaster.save(os.path.join('gcs', 'models_forecasting', f'{feature}.h5'))\n    aip.end_run()\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef train(\n    feature: str,\n    lookback: int,\n    lstm_units: int,\n    learning_rate: float,\n    epochs: int,\n    batch_size: int,\n    patience: int,\n    train_data: Input[Dataset],\n    scaler_model: Output[Model],\n    keras_model: Output[Model],\n    metrics: Output[Metrics],\n) -> None:\n    \"\"\"Instantiates, trains the RNN model on the train dataset. Saves the trained scaler and the keras model to the metadata store, saves the evaluation metrics file as well.\n\n    Args:\n        feature (str): Feature string to train on\n        lookback (int): Length of the lookback window\n        lstm_units (int): Number of the LSTM units in the RNN\n        learning_rate (float): Initial learning rate\n        epochs (int): Number of epochs to train\n        batch_size (int): Batch size\n        patience (int): Number of patient epochs before the callbacks activate\n        train_data (Input[Dataset]): Train dataset\n        scaler_model (Output[Model]): Scaler model\n        keras_model (Output[Model]): Keras model\n        metrics (Output[Metrics]): Metrics\n    \"\"\"\n    import json\n    import os\n    from datetime import datetime\n\n    import google.cloud.aiplatform as aip\n    import joblib\n    import numpy as np\n    import pandas as pd\n    from sklearn.preprocessing import MinMaxScaler\n    from tensorflow import keras\n\n    PROJECT_ID = 'test-rig-349313'\n    REGION = 'europe-west2'\n    TRAIN_GPU, TRAIN_NGPU = (aip.gapic.AcceleratorType.NVIDIA_TESLA_T4, 1)\n    TRAIN_VERSION = 'tf-gpu.2-9'\n    TRAIN_IMAGE = f'{REGION.split(\"-\")[0]}-docker.pkg.dev/vertex-ai/training/{TRAIN_VERSION}:latest'\n    DEPLOY_IMAGE = TRAIN_IMAGE\n    MODELS_BUCKET_NAME = 'models_forecasting'\n    MODELS_BUCKET_URI = f'gs://{MODELS_BUCKET_NAME}'\n    PIPELINES_BUCKET_NAME = 'test_rig_pipelines'\n    PIPELINES_BUCKET_URI = f'gs://{PIPELINES_BUCKET_NAME}'\n    TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')\n    EXP_NAME = feature.lower().replace('_', '-')\n\n    train_df = pd.read_csv(train_data.path + '.csv', index_col=False)\n    train_data = train_df[feature].values.reshape(-1, 1)\n    scaler = MinMaxScaler(feature_range=(0, 1))\n    scaled_train_data = scaler.fit_transform(train_data)\n    scaler_model.metadata['feature'] = feature\n    joblib.dump(\n        scaler,\n        scaler_model.path + f'_{feature}.joblib',\n    )\n    joblib.dump(\n        scaler,\n        os.path.join('gcs', 'models_forecasting', f'{feature}.joblib'),\n    )\n    x_train, y_train = [], []\n    for i in range(lookback, len(scaled_train_data)):\n        x_train.append(scaled_train_data[i - lookback:i])\n        y_train.append(scaled_train_data[i])\n    x_train = np.stack(x_train)\n    y_train = np.stack(y_train)\n    forecaster = keras.models.Sequential()\n    forecaster.add(\n        keras.layers.LSTM(lstm_units,\n                          input_shape=(x_train.shape[1], x_train.shape[2]),\n                          return_sequences=False))\n    forecaster.add(keras.layers.Dense(1))\n    forecaster.compile(\n        loss=keras.losses.mean_squared_error,\n        metrics=keras.metrics.RootMeanSquaredError(),\n        optimizer=keras.optimizers.RMSprop(learning_rate=learning_rate))\n    if EXP_NAME not in [exp.name for exp in aip.Experiment.list()]:\n        aip.init(\n            experiment=EXP_NAME,\n            project=PROJECT_ID,\n            location=REGION,\n            staging_bucket=PIPELINES_BUCKET_URI,\n        )\n    else:\n        aip.init(\n            project=PROJECT_ID,\n            location=REGION,\n            staging_bucket=PIPELINES_BUCKET_URI,\n        )\n    aip.start_run(run='-'.join((EXP_NAME, TIMESTAMP)))\n    history = forecaster.fit(x_train,\n                             y_train,\n                             shuffle=False,\n                             epochs=epochs,\n                             batch_size=batch_size,\n                             validation_split=0.2,\n                             verbose=1,\n                             callbacks=[\n                                 keras.callbacks.EarlyStopping(\n                                     patience=patience,\n                                     monitor='val_loss',\n                                     mode='min',\n                                     verbose=1,\n                                     restore_best_weights=True,\n                                 ),\n                                 keras.callbacks.ReduceLROnPlateau(\n                                     monitor='val_loss',\n                                     factor=0.75,\n                                     patience=patience // 2,\n                                     verbose=1,\n                                     mode='min',\n                                 ),\n                                 keras.callbacks.TensorBoard(\n                                     log_dir=os.path.join(\n                                         'gcs',\n                                         'test_rig_pipelines',\n                                         'tb',\n                                         f'{feature}',\n                                         TIMESTAMP,\n                                     ),\n                                     histogram_freq=1,\n                                     write_graph=True,\n                                     write_images=True,\n                                     update_freq='epoch',\n                                 )\n                             ])\n    for k, v in history.history.items():\n        history.history[k] = [float(vi) for vi in v]\n        metrics.log_metric(k, history.history[k])\n    metrics.metadata['feature'] = feature\n    keras_model.metadata['feature'] = feature\n    forecaster.save(keras_model.path + f'_{feature}.h5')\n    forecaster.save(os.path.join('gcs', 'models_forecasting', f'{feature}.h5'))\n    aip.end_run()\n\n"
             ],
             "image": "tensorflow/tensorflow:latest"
           }
@@ -610,7 +610,7 @@
               "name": "comp-for-loop-1"
             },
             "dependentTasks": [
-              "load-final-features",
+              "import-final-features",
               "split-data"
             ],
             "inputs": {
@@ -635,14 +635,14 @@
                 "pipelineparam--epochs": {
                   "componentInputParameter": "epochs"
                 },
-                "pipelineparam--learning_rate": {
-                  "componentInputParameter": "learning_rate"
-                },
-                "pipelineparam--load-final-features-Output": {
+                "pipelineparam--import-final-features-Output": {
                   "taskOutputParameter": {
                     "outputParameterKey": "Output",
-                    "producerTask": "load-final-features"
+                    "producerTask": "import-final-features"
                   }
+                },
+                "pipelineparam--learning_rate": {
+                  "componentInputParameter": "learning_rate"
                 },
                 "pipelineparam--lookback": {
                   "componentInputParameter": "lookback"
@@ -656,13 +656,31 @@
               }
             },
             "parameterIterator": {
-              "itemInput": "pipelineparam--load-final-features-Output-loop-item",
+              "itemInput": "pipelineparam--import-final-features-Output-loop-item",
               "items": {
-                "inputParameter": "pipelineparam--load-final-features-Output"
+                "inputParameter": "pipelineparam--import-final-features-Output"
               }
             },
             "taskInfo": {
               "name": "for-loop-1"
+            }
+          },
+          "import-final-features": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-import-final-features"
+            },
+            "inputs": {
+              "parameters": {
+                "data_bucket_name": {
+                  "componentInputParameter": "data_bucket"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "import-final-features"
             }
           },
           "importer": {
@@ -685,24 +703,6 @@
             },
             "taskInfo": {
               "name": "importer"
-            }
-          },
-          "load-final-features": {
-            "cachingOptions": {
-              "enableCache": true
-            },
-            "componentRef": {
-              "name": "comp-load-final-features"
-            },
-            "inputs": {
-              "parameters": {
-                "data_bucket_name": {
-                  "componentInputParameter": "data_bucket"
-                }
-              }
-            },
-            "taskInfo": {
-              "name": "load-final-features"
             }
           },
           "read-raw-data": {
