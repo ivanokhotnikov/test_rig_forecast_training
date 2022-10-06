@@ -8,7 +8,7 @@ def download_tb_logs():
 
     data_bucket = STORAGE_CLIENT.get_bucket(DATA_BUCKET_NAME)
 
-    features_blob = data_bucket.get_blob('final_features.json')
+    features_blob = data_bucket.get_blob('features/final_features.json')
     features = loads(features_blob.download_as_text())
 
     for feature in features:

@@ -9,14 +9,12 @@ from kfp.v2.dsl import Artifact, Dataset, Output, component
     output_component_file=os.path.join('configs', 'read_raw_gcs.yaml'),
 )
 def read_raw_data(
-    data_bucket_name: str,
     interim_data: Output[Dataset],
     all_features: Output[Artifact],
 ) -> None:
     """Read raw data files from the GCS bucket, specified by `bucket_name`. Uploads the combined data frame to the interim data directory in the GCS bucket.
 
     Args:
-        data_bucket_name (str): GCS data bucket
         interim_data (Output[Dataset]): Interim data
         all_features (Output[Artifact]): Raw features artifact
     """
@@ -29,7 +27,7 @@ def read_raw_data(
 
     logging.basicConfig(level=logging.INFO)
     final_df = pd.DataFrame()
-    raw_data_path = os.path.join('gcs', data_bucket_name, 'raw')
+    raw_data_path = os.path.join('gcs', 'test_rig_data', 'raw')
     units = []
     for file in os.listdir(raw_data_path):
         logging.info(f'Reading {file} from {raw_data_path}')
@@ -47,26 +45,29 @@ def read_raw_data(
                     header=0,
                     index_col=False,
                 )
-            logging.info(f'{file} was read!')
-            name_list = file.split('-')
-            try:
-                unit = int(name_list[0][-3:].lstrip('0D'))
-            except ValueError:
-                unit = int(name_list[0].split('_')[0][-3:].lstrip('0D'))
-            units.append(unit)
-            current_df['UNIT'] = unit
-            current_df['TEST'] = int(units.count(unit))
-            final_df = pd.concat((final_df, current_df), ignore_index=True)
-            del current_df
-            gc.collect()
+            else:
+                logging.info(f'{file} is not a valid raw data file.')
+                continue
         except:
-            logging.info(f'Can\'t read {file}!')
+            logging.info(f'Can\'t read {file}.')
             continue
+        logging.info(f'{file} has been read.')
+        name_list = file.split('-')
+        try:
+            unit = int(name_list[0][-3:].lstrip('0D'))
+        except ValueError:
+            unit = int(name_list[0].split('_')[0][-3:].lstrip('0D'))
+        units.append(unit)
+        current_df['UNIT'] = unit
+        current_df['TEST'] = int(units.count(unit))
+        final_df = pd.concat((final_df, current_df), ignore_index=True)
+        del current_df
+        gc.collect()
     final_df.to_csv(
         interim_data.path + '.csv',
         index=False,
     )
-    interim_data_path = os.path.join('gcs', data_bucket_name, 'interim')
+    interim_data_path = os.path.join('gcs', 'test_rig_data', 'interim')
     final_df.to_csv(
         os.path.join(interim_data_path, 'interim_data.csv'),
         index=False,

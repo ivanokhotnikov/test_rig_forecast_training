@@ -7,14 +7,12 @@ from kfp.v2.dsl import Artifact, ParallelFor, importer, pipeline
 
 from components import (build_features, evaluate, import_final_features,
                         read_raw_data, split_data, train)
-from utils import download_tb_logs
-from utils.constants import (DATA_BUCKET_NAME, PIPELINES_BUCKET_URI,
-                             PROJECT_ID, REGION)
+from utils.constants import (PROJECT_ID, REGION, PIPELINES_BUCKET_URI,
+                             TRAIN_GPU, TRAIN_NGPU, VCPU, MEMORY_LIMIT)
 
 
 @pipeline(name='training-pipeline', pipeline_root=PIPELINES_BUCKET_URI)
 def training_pipeline(
-    data_bucket: str,
     train_data_size: float,
     lookback: int,
     lstm_units: int,
@@ -24,19 +22,18 @@ def training_pipeline(
     patience: int,
 ) -> None:
     raw_features_import = importer(
-        artifact_uri='gs://test_rig_data/raw_features.json',
+        artifact_uri='gs://test_rig_data/features/raw_features.json',
         artifact_class=Artifact,
     )
-    read_raw_data_task = read_raw_data(data_bucket_name=data_bucket)
+    read_raw_data_task = read_raw_data()
     build_features_task = build_features(
-        data_bucket_name=data_bucket,
         raw_features=raw_features_import.output,
         interim_data=read_raw_data_task.outputs['interim_data'],
     )
     split_data_task = split_data(
         train_data_size=train_data_size,
         processed_data=build_features_task.outputs['processed_data'])
-    final_features_import = import_final_features(data_bucket_name=data_bucket)
+    final_features_import = import_final_features()
     with ParallelFor(final_features_import.output) as feature:
         train_task = train(
             feature=feature,
@@ -48,6 +45,10 @@ def training_pipeline(
             patience=patience,
             train_data=split_data_task.outputs['train_data'],
         )
+        # .set_cpu_limit(VCPU)\
+        # .set_memory_limit(MEMORY_LIMIT)\
+        # .add_node_selector_constraint('cloud.google.com/gke-accelerator','NVIDIA_TESLA_T4')\
+        # .set_gpu_limit(TRAIN_NGPU)\
         evaluate_task = evaluate(
             feature=feature,
             lookback=lookback,
@@ -56,6 +57,11 @@ def training_pipeline(
             scaler_model=train_task.outputs['scaler_model'],
             keras_model=train_task.outputs['keras_model'],
         )
+        # .set_cpu_limit(VCPU)\
+        # .add_node_selector_constraint('cloud.google.com/gke-accelerator','NVIDIA_TESLA_T4')\
+        # .set_memory_limit(MEMORY_LIMIT)\
+        # .add_node_selector_constraint(TRAIN_GPU)\
+        # .set_gpu_limit(TRAIN_NGPU)\
 
 
 if __name__ == '__main__':
@@ -74,15 +80,13 @@ if __name__ == '__main__':
         pipeline_root=PIPELINES_BUCKET_URI,
         template_path=os.path.join('configs', 'training_pipeline.json'),
         parameter_values={
-            'data_bucket': DATA_BUCKET_NAME,
             'train_data_size': 0.8,
             'lookback': 120,
             'lstm_units': 3,
             'learning_rate': 0.1,
-            'epochs': 3,
+            'epochs': 1,
             'batch_size': 256,
             'patience': 3
         },
     )
     job.run()
-    download_tb_logs()
