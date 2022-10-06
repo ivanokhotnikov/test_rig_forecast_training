@@ -9,6 +9,7 @@ from kfp.v2.dsl import Dataset, Input, Metrics, Model, Output, component
         'pandas',
         'scikit-learn',
         'google-cloud-aiplatform',
+        'protobuf==3.13.0',
     ],
     output_component_file=os.path.join('configs', 'evaluate.yaml'),
 )
@@ -33,12 +34,25 @@ def evaluate(
         eval_metrics (Output[Metrics]): Metrics
     """
     import json
+    from datetime import datetime
 
+    import google.cloud.aiplatform as aip
     import joblib
     import numpy as np
     import pandas as pd
     from tensorflow import keras
 
+    PROJECT_ID = 'test-rig-349313'
+    REGION = 'europe-west2'
+    EXP_NAME = feature.lower().replace('_', '-')
+    TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')
+
+    aip.init(
+        experiment=EXP_NAME,
+        project=PROJECT_ID,
+        location=REGION,
+    )
+    aip.start_run(run='-'.join((EXP_NAME, TIMESTAMP)))
     test_df = pd.read_csv(test_data.path + '.csv', index_col=False)
     test_data = test_df[feature].values.reshape(-1, 1)
     scaler = joblib.load(scaler_model.path + f'_{feature}.joblib')
@@ -49,7 +63,7 @@ def evaluate(
         y_test.append(scaled_test[i])
     x_test = np.stack(x_test)
     y_test = np.stack(y_test)
-    forecaster = keras.models.load_model(keras_model.path + f'_{feature}.h5')
+    forecaster = keras.models.load_model(keras_model.path + f'_{feature}')
     results = forecaster.evaluate(x_test,
                                   y_test,
                                   verbose=1,
@@ -60,3 +74,4 @@ def evaluate(
     for k, v in results.items():
         metrics.log_metric(k, v)
     metrics.metadata['feature'] = feature
+    aip.end_run()

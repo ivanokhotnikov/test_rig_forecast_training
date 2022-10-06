@@ -1,6 +1,6 @@
 plotly
 streamlit
-tensorflow==2.9
+tensorflow
 scikit-learn
 kfp
 google-cloud-aiplatform

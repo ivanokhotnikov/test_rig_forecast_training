@@ -1,6 +1,6 @@
 import os
 
-from kfp.v2.dsl import Dataset, Input, Metrics, Model, Output, component
+from kfp.v2.dsl import component, Input, Output, Dataset, Metrics, Model
 
 
 @component(
@@ -9,6 +9,7 @@ from kfp.v2.dsl import Dataset, Input, Metrics, Model, Output, component
         'pandas',
         'scikit-learn',
         'google-cloud-aiplatform',
+        'protobuf==3.13.0',
     ],
     output_component_file=os.path.join('configs', 'train.yaml'),
 )
@@ -40,7 +41,6 @@ def train(
         keras_model (Output[Model]): Keras model
         metrics (Output[Metrics]): Metrics
     """
-    import json
     import os
     from datetime import datetime
 
@@ -53,16 +53,14 @@ def train(
 
     PROJECT_ID = 'test-rig-349313'
     REGION = 'europe-west2'
-    TRAIN_GPU, TRAIN_NGPU = (aip.gapic.AcceleratorType.NVIDIA_TESLA_T4, 1)
-    TRAIN_VERSION = 'tf-gpu.2-9'
-    TRAIN_IMAGE = f'{REGION.split("-")[0]}-docker.pkg.dev/vertex-ai/training/{TRAIN_VERSION}:latest'
-    DEPLOY_IMAGE = TRAIN_IMAGE
+
+    SERVING_IMAGE_GPU_PREFIX = 'tf2-gpu.2-9'
+    SERVING_IMAGE_CPU_PREFIX = 'tf2-cpu.2-9'
+    SERVING_IMAGE = f'{REGION.split("-")[0]}-docker.pkg.dev/vertex-ai/prediction/{SERVING_IMAGE_CPU_PREFIX}:latest'
+
     MODELS_BUCKET_NAME = 'models_forecasting'
     MODELS_BUCKET_URI = f'gs://{MODELS_BUCKET_NAME}'
-    PIPELINES_BUCKET_NAME = 'test_rig_pipelines'
-    PIPELINES_BUCKET_URI = f'gs://{PIPELINES_BUCKET_NAME}'
     TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')
-    EXP_NAME = feature.lower().replace('_', '-')
 
     train_df = pd.read_csv(train_data.path + '.csv', index_col=False)
     train_data = train_df[feature].values.reshape(-1, 1)
@@ -72,10 +70,6 @@ def train(
     joblib.dump(
         scaler,
         scaler_model.path + f'_{feature}.joblib',
-    )
-    joblib.dump(
-        scaler,
-        os.path.join('gcs', 'models_forecasting', f'{feature}.joblib'),
     )
     x_train, y_train = [], []
     for i in range(lookback, len(scaled_train_data)):
@@ -93,20 +87,6 @@ def train(
         loss=keras.losses.mean_squared_error,
         metrics=keras.metrics.RootMeanSquaredError(),
         optimizer=keras.optimizers.RMSprop(learning_rate=learning_rate))
-    if EXP_NAME not in [exp.name for exp in aip.Experiment.list()]:
-        aip.init(
-            experiment=EXP_NAME,
-            project=PROJECT_ID,
-            location=REGION,
-            staging_bucket=PIPELINES_BUCKET_URI,
-        )
-    else:
-        aip.init(
-            project=PROJECT_ID,
-            location=REGION,
-            staging_bucket=PIPELINES_BUCKET_URI,
-        )
-    aip.start_run(run='-'.join((EXP_NAME, TIMESTAMP)))
     history = forecaster.fit(x_train,
                              y_train,
                              shuffle=False,
@@ -134,7 +114,7 @@ def train(
                                          'gcs',
                                          'test_rig_pipelines',
                                          'tb',
-                                         f'{feature}',
+                                         feature,
                                          TIMESTAMP,
                                      ),
                                      histogram_freq=1,
@@ -148,6 +128,40 @@ def train(
         metrics.log_metric(k, history.history[k])
     metrics.metadata['feature'] = feature
     keras_model.metadata['feature'] = feature
-    forecaster.save(keras_model.path + f'_{feature}.h5')
-    forecaster.save(os.path.join('gcs', 'models_forecasting', f'{feature}.h5'))
-    aip.end_run()
+    forecaster.save(keras_model.path + f'_{feature}')
+    forecaster.save(os.path.join('gcs', 'models_forecasting', feature))
+    aip.init(
+        project=PROJECT_ID,
+        location=REGION,
+    )
+    models = [
+        model.display_name for model in aip.Model.list(
+            project=PROJECT_ID,
+            location=REGION,
+        )
+    ]
+    if feature not in models:
+        _ = aip.Model.upload(
+            project=PROJECT_ID,
+            location=REGION,
+            display_name=feature,
+            artifact_uri=f'{MODELS_BUCKET_URI}/{feature}',
+            serving_container_image_uri=SERVING_IMAGE,
+            is_default_version=True,
+        )
+    else:
+        for model in aip.Model.list(
+                project=PROJECT_ID,
+                location=REGION,
+        ):
+            if model.display_name == feature:
+                _ = aip.Model.upload(
+                    project=PROJECT_ID,
+                    location=REGION,
+                    parent_model=model.name,
+                    display_name=feature,
+                    artifact_uri=f'{MODELS_BUCKET_URI}/{feature}',
+                    serving_container_image_uri=SERVING_IMAGE,
+                    is_default_version=True,
+                )
+                break
