@@ -6,12 +6,13 @@ import time
 import google.cloud.aiplatform as aip
 from google.api_core.exceptions import NotFound
 
-from utils.constants import (PIPELINES_BUCKET_NAME, PROJECT_ID, PROJECT_NUMBER,
+from constants import (PIPELINES_BUCKET_NAME, PROJECT_ID, PROJECT_NUMBER,
                              SLEEP_TIME, STORAGE_CLIENT, VERTEX_REGIONS)
 
 
 def clean_vertex(
     clean_custom_jobs: bool = False,
+    clean_pipeline_jobs: bool = False,
     clean_artifacts: bool = False,
     clean_models: bool = False,
     clean_tensorboards: bool = False,
@@ -27,6 +28,7 @@ def clean_vertex(
     else:
         logging.basicConfig(level=logging.ERROR)
     logging.info(f'clean_custom_jobs is set to {clean_custom_jobs}')
+    logging.info(f'clean_pipeline_jobs is set to {clean_pipeline_jobs}')
     logging.info(f'clean_artifacts is set to {clean_artifacts}')
     logging.info(f'clean_models is set to {clean_models}')
     logging.info(f'clean_tensorboards is set to {clean_tensorboards}')
@@ -37,6 +39,7 @@ def clean_vertex(
     logging.info(f'clean_all is set to {clean_all}')
     if clean_all:
         clean_custom_jobs = True
+        clean_pipeline_jobs = True
         clean_artifacts = True
         clean_models = True
         clean_tensorboards = True
@@ -45,6 +48,7 @@ def clean_vertex(
         clean_tensorboard_events = True
     elif not any([
             clean_custom_jobs,
+            clean_pipeline_jobs,
             clean_artifacts,
             clean_models,
             clean_tensorboards,
@@ -62,6 +66,11 @@ def clean_vertex(
         try:
             if clean_custom_jobs:
                 for job in aip.CustomJob.list():
+                    job.delete()
+                    time.sleep(SLEEP_TIME)
+                logging.info(f'Custom jobs have been cleaned in {loc}')
+            if clean_pipeline_jobs:
+                for job in aip.PipelineJob.list():
                     job.delete()
                     time.sleep(SLEEP_TIME)
                 logging.info(f'Custom jobs have been cleaned in {loc}')
@@ -116,6 +125,11 @@ def parse_agruments():
     parser.add_argument(
         '-custom_jobs',
         '--clean_custom_jobs',
+        action='store_true',
+    )
+    parser.add_argument(
+        '-pipeline_jobs',
+        '--clean_pipeline_jobs',
         action='store_true',
     )
     parser.add_argument(
