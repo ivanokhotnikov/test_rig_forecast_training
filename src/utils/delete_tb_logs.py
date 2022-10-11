@@ -3,8 +3,8 @@ import shutil
 
 
 def delete_tb_logs():
-    for folder in os.listdir('logs'):
-        shutil.rmtree(os.path.join('logs', folder))
+    for folder in os.listdir(os.path.join('..','logs')):
+        shutil.rmtree(os.path.join('..','logs', folder))
 
 
 if __name__ == '__main__':

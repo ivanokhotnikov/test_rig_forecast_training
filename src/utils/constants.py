@@ -23,9 +23,7 @@ MEMORY_LIMIT = '32G'
 SLEEP_TIME = 1.1
 
 VERTEX_REGIONS = {
-    'europe-west1', 'europe-west2', 'europe-west3', 'europe-west4',
-    'europe-west6', 'europe-west9', 'us-central1', 'us-west1', 'us-west2',
-    'us-west4'
+    'europe-west1', 'europe-west2', 'europe-west4', 'us-central1'
 }
 
 STORAGE_CLIENT = storage.Client()

@@ -158,7 +158,7 @@ def parse_agruments():
         action='store_true',
     )
     parser.add_argument(
-        '-tb_events',
+        '-tb-events',
         '--clean_tensorboard_events',
         action='store_true',
     )
