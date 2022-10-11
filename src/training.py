@@ -35,7 +35,7 @@ def training_pipeline(
         processed_data=build_features_task.outputs['processed_data'])
     final_features_import = import_final_features()
     with ParallelFor(final_features_import.output) as feature:
-        train_task = train(
+        train_task = (train(
             feature=feature,
             lookback=lookback,
             lstm_units=lstm_units,
@@ -45,11 +45,11 @@ def training_pipeline(
             patience=patience,
             train_data=split_data_task.outputs['train_data'],
         )
-        # .set_cpu_limit(VCPU)\
-        # .set_memory_limit(MEMORY_LIMIT)\
-        # .add_node_selector_constraint('cloud.google.com/gke-accelerator','NVIDIA_TESLA_T4')\
-        # .set_gpu_limit(TRAIN_NGPU)\
-        evaluate_task = evaluate(
+        .set_cpu_limit(VCPU)\
+        .set_memory_limit(MEMORY_LIMIT)
+        .add_node_selector_constraint('cloud.google.com/gke-accelerator','NVIDIA_TESLA_T4')\
+        .set_gpu_limit(TRAIN_NGPU))
+        evaluate_task = (evaluate(
             feature=feature,
             lookback=lookback,
             batch_size=batch_size,
@@ -57,11 +57,10 @@ def training_pipeline(
             scaler_model=train_task.outputs['scaler_model'],
             keras_model=train_task.outputs['keras_model'],
         )
-        # .set_cpu_limit(VCPU)\
-        # .add_node_selector_constraint('cloud.google.com/gke-accelerator','NVIDIA_TESLA_T4')\
-        # .set_memory_limit(MEMORY_LIMIT)\
-        # .add_node_selector_constraint(TRAIN_GPU)\
-        # .set_gpu_limit(TRAIN_NGPU)\
+        .set_cpu_limit(VCPU)\
+        .set_memory_limit(MEMORY_LIMIT)
+        .add_node_selector_constraint('cloud.google.com/gke-accelerator','NVIDIA_TESLA_T4')\
+        .set_gpu_limit(TRAIN_NGPU))
 
 
 if __name__ == '__main__':
@@ -82,11 +81,11 @@ if __name__ == '__main__':
         parameter_values={
             'train_data_size': 0.8,
             'lookback': 120,
-            'lstm_units': 3,
-            'learning_rate': 0.1,
-            'epochs': 1,
+            'lstm_units': 5,
+            'learning_rate': 0.01,
+            'epochs': 30,
             'batch_size': 256,
-            'patience': 3
+            'patience': 5,
         },
     )
     job.run()

@@ -4,7 +4,7 @@ from kfp.v2.dsl import component, Input, Output, Dataset, Metrics, Model
 
 
 @component(
-    base_image='tensorflow/tensorflow:latest',
+    base_image='tensorflow/tensorflow:latest-gpu',
     packages_to_install=[
         'pandas',
         'scikit-learn',
@@ -51,15 +51,6 @@ def train(
     from sklearn.preprocessing import MinMaxScaler
     from tensorflow import keras
 
-    PROJECT_ID = 'test-rig-349313'
-    REGION = 'europe-west2'
-
-    SERVING_IMAGE_GPU_PREFIX = 'tf2-gpu.2-9'
-    SERVING_IMAGE_CPU_PREFIX = 'tf2-cpu.2-9'
-    SERVING_IMAGE = f'{REGION.split("-")[0]}-docker.pkg.dev/vertex-ai/prediction/{SERVING_IMAGE_CPU_PREFIX}:latest'
-
-    MODELS_BUCKET_NAME = 'models_forecasting'
-    MODELS_BUCKET_URI = f'gs://{MODELS_BUCKET_NAME}'
     TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')
 
     train_df = pd.read_csv(train_data.path + '.csv', index_col=False)
@@ -69,7 +60,11 @@ def train(
     scaler_model.metadata['feature'] = feature
     joblib.dump(
         scaler,
-        scaler_model.path + f'_{feature}.joblib',
+        scaler_model.path + '.joblib',
+    )
+    joblib.dump(
+        scaler,
+        os.path.join('gcs', 'models_forecasting', f'{feature}.joblib'),
     )
     x_train, y_train = [], []
     for i in range(lookback, len(scaled_train_data)):
@@ -77,7 +72,7 @@ def train(
         y_train.append(scaled_train_data[i])
     x_train = np.stack(x_train)
     y_train = np.stack(y_train)
-    forecaster = keras.models.Sequential()
+    forecaster = keras.models.Sequential(name=f'{feature}_forecaster')
     forecaster.add(
         keras.layers.LSTM(lstm_units,
                           input_shape=(x_train.shape[1], x_train.shape[2]),
@@ -128,40 +123,40 @@ def train(
         metrics.log_metric(k, history.history[k])
     metrics.metadata['feature'] = feature
     keras_model.metadata['feature'] = feature
-    forecaster.save(keras_model.path + f'_{feature}')
-    forecaster.save(os.path.join('gcs', 'models_forecasting', feature))
-    aip.init(
-        project=PROJECT_ID,
-        location=REGION,
-    )
-    models = [
-        model.display_name for model in aip.Model.list(
-            project=PROJECT_ID,
-            location=REGION,
-        )
-    ]
-    if feature not in models:
-        _ = aip.Model.upload(
-            project=PROJECT_ID,
-            location=REGION,
-            display_name=feature,
-            artifact_uri=f'{MODELS_BUCKET_URI}/{feature}',
-            serving_container_image_uri=SERVING_IMAGE,
-            is_default_version=True,
-        )
-    else:
-        for model in aip.Model.list(
-                project=PROJECT_ID,
-                location=REGION,
-        ):
-            if model.display_name == feature:
-                _ = aip.Model.upload(
-                    project=PROJECT_ID,
-                    location=REGION,
-                    parent_model=model.name,
-                    display_name=feature,
-                    artifact_uri=f'{MODELS_BUCKET_URI}/{feature}',
-                    serving_container_image_uri=SERVING_IMAGE,
-                    is_default_version=True,
-                )
-                break
+    forecaster.save(keras_model.path + '.h5')
+    forecaster.save(os.path.join('gcs', 'models_forecasting', f'{feature}.h5'))
+    # aip.init(
+    #     project=PROJECT_ID,
+    #     location=REGION,
+    # )
+    # models = [
+    #     model.display_name for model in aip.Model.list(
+    #         project=PROJECT_ID,
+    #         location=REGION,
+    #     )
+    # ]
+    # if feature not in models:
+    #     _ = aip.Model.upload(
+    #         project=PROJECT_ID,
+    #         location=REGION,
+    #         display_name=feature,
+    #         artifact_uri=f'{MODELS_BUCKET_URI}/{feature}',
+    #         serving_container_image_uri=SERVING_IMAGE,
+    #         is_default_version=True,
+    #     )
+    # else:
+    #     for model in aip.Model.list(
+    #             project=PROJECT_ID,
+    #             location=REGION,
+    #     ):
+    #         if model.display_name == feature:
+    #             _ = aip.Model.upload(
+    #                 project=PROJECT_ID,
+    #                 location=REGION,
+    #                 parent_model=model.name,
+    #                 display_name=feature,
+    #                 artifact_uri=f'{MODELS_BUCKET_URI}/{feature}',
+    #                 serving_container_image_uri=SERVING_IMAGE,
+    #                 is_default_version=True,
+    #             )
+    #             break

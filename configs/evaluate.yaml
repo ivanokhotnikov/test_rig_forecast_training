@@ -12,7 +12,7 @@ outputs:
 - {name: metrics, type: Metrics}
 implementation:
   container:
-    image: tensorflow/tensorflow:latest
+    image: tensorflow/tensorflow:latest-gpu
     command:
     - sh
     - -c
@@ -29,76 +29,39 @@ implementation:
       program_path=$(mktemp -d)
       printf "%s" "$0" > "$program_path/ephemeral_component.py"
       python3 -m kfp.v2.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-    - |2+
-
-      import kfp
-      from kfp.v2 import dsl
-      from kfp.v2.dsl import *
-      from typing import *
-
-      def evaluate(
-          feature: str,
-          lookback: int,
-          batch_size: int,
-          test_data: Input[Dataset],
-          scaler_model: Input[Model],
-          keras_model: Input[Model],
-          metrics: Output[Metrics],
-      ) -> None:
-          """Evaluates the trained keras model, saves the evaludation metrics to the metadata store
-
-          Args:
-              feature (str): Feature strin to train on
-              lookback (int): Length of the lookback window
-              batch_size (int): Batch size
-              test_data (Input[Dataset]): Train dataset
-              scaler_model (Input[Model]): Scaler model
-              keras_model (Input[Model]): Keras model
-              eval_metrics (Output[Metrics]): Metrics
-          """
-          import json
-          from datetime import datetime
-
-          import google.cloud.aiplatform as aip
-          import joblib
-          import numpy as np
-          import pandas as pd
-          from tensorflow import keras
-
-          PROJECT_ID = 'test-rig-349313'
-          REGION = 'europe-west2'
-          EXP_NAME = feature.lower().replace('_', '-')
-          TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')
-
-          aip.init(
-              experiment=EXP_NAME,
-              project=PROJECT_ID,
-              location=REGION,
-          )
-          aip.start_run(run='-'.join((EXP_NAME, TIMESTAMP)))
-          test_df = pd.read_csv(test_data.path + '.csv', index_col=False)
-          test_data = test_df[feature].values.reshape(-1, 1)
-          scaler = joblib.load(scaler_model.path + f'_{feature}.joblib')
-          scaled_test = scaler.transform(test_data)
-          x_test, y_test = [], []
-          for i in range(lookback, len(scaled_test)):
-              x_test.append(scaled_test[i - lookback:i])
-              y_test.append(scaled_test[i])
-          x_test = np.stack(x_test)
-          y_test = np.stack(y_test)
-          forecaster = keras.models.load_model(keras_model.path + f'_{feature}')
-          results = forecaster.evaluate(x_test,
-                                        y_test,
-                                        verbose=1,
-                                        batch_size=batch_size,
-                                        return_dict=True)
-          with open(metrics.path + f'_{feature}.json', 'w') as metrics_file:
-              metrics_file.write(json.dumps(results))
-          for k, v in results.items():
-              metrics.log_metric(k, v)
-          metrics.metadata['feature'] = feature
-          aip.end_run()
-
+    - "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing\
+      \ import *\n\ndef evaluate(\n    feature: str,\n    lookback: int,\n    batch_size:\
+      \ int,\n    test_data: Input[Dataset],\n    scaler_model: Input[Model],\n  \
+      \  keras_model: Input[Model],\n    metrics: Output[Metrics],\n) -> None:\n \
+      \   \"\"\"Evaluates the trained keras model, saves the evaludation metrics to\
+      \ the metadata store\n\n    Args:\n        feature (str): Feature strin to train\
+      \ on\n        lookback (int): Length of the lookback window\n        batch_size\
+      \ (int): Batch size\n        test_data (Input[Dataset]): Train dataset\n   \
+      \     scaler_model (Input[Model]): Scaler model\n        keras_model (Input[Model]):\
+      \ Keras model\n        eval_metrics (Output[Metrics]): Metrics\n    \"\"\"\n\
+      \    import os\n    import json\n    from datetime import datetime\n\n    import\
+      \ google.cloud.aiplatform as aip\n\n    import joblib\n    import numpy as np\n\
+      \    import pandas as pd\n    from tensorflow import keras\n\n    PROJECT_ID\
+      \ = 'test-rig-349313'\n    REGION = 'europe-west2'\n    EXP_NAME = feature.lower().replace('_',\
+      \ '-')\n    TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')\n\n    aip.init(\n\
+      \        experiment=EXP_NAME,\n        project=PROJECT_ID,\n        location=REGION,\n\
+      \    )\n    aip.start_run(run='-'.join((EXP_NAME, TIMESTAMP)))\n    test_df\
+      \ = pd.read_csv(test_data.path + '.csv', index_col=False)\n    test_data = test_df[feature].values.reshape(-1,\
+      \ 1)\n    scaler = joblib.load(scaler_model.path + '.joblib')\n    scaled_test\
+      \ = scaler.transform(test_data)\n    x_test, y_test = [], []\n    for i in range(lookback,\
+      \ len(scaled_test)):\n        x_test.append(scaled_test[i - lookback:i])\n \
+      \       y_test.append(scaled_test[i])\n    x_test = np.stack(x_test)\n    y_test\
+      \ = np.stack(y_test)\n    forecaster = keras.models.load_model(keras_model.path\
+      \ + '.h5')\n    results = forecaster.evaluate(x_test,\n                    \
+      \              y_test,\n                                  verbose=1,\n     \
+      \                             batch_size=batch_size,\n                     \
+      \             return_dict=True)\n    with open(metrics.path + '.json', 'w')\
+      \ as metrics_file:\n        metrics_file.write(json.dumps(results))\n    with\
+      \ open(os.path.join('gcs', 'models_forecasting', f'{feature}.json'),\n     \
+      \         'w') as metrics_file:\n        metrics_file.write(json.dumps(results))\n\
+      \    for k, v in results.items():\n        metrics.log_metric(k, v)\n      \
+      \  aip.log_metrics({k: v})        \n    metrics.metadata['feature'] = feature\n\
+      \    aip.end_run()\n\n"
     args:
     - --executor_input
     - {executorInput: null}
