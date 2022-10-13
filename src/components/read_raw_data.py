@@ -63,7 +63,7 @@ def read_raw_data(
         gc.collect()
     try:
         final_df.sort_values(
-            by=['UNIT', 'TEST','TIME'],
+            by=['UNIT', 'TEST'],
             inplace=True,
             ignore_index=True
         )
