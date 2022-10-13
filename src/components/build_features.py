@@ -1,12 +1,9 @@
-import os
-
 from kfp.v2.dsl import Artifact, Dataset, Input, Output, component
 
 
 @component(
     base_image='python:3.10-slim',
     packages_to_install=['pandas'],
-    output_component_file=os.path.join('configs', 'build_features.yaml'),
 )
 def build_features(
     raw_features: Input[Artifact],
@@ -22,6 +19,7 @@ def build_features(
         processed_data (Output[Dataset]): Processed dataset
     """
     import json
+    import logging
     import math
     import os
 
@@ -30,7 +28,7 @@ def build_features(
     with open(raw_features.path, 'r') as features_file:
         raw_features_list = list(json.loads(features_file.read()))
     no_time_features = [
-        f for f in raw_features_list if f not in ('TIME', ' DATE')
+        f for f in raw_features_list if f not in ('TIME', ' DATE', 'DATE')
     ]
     df = pd.read_csv(
         interim_data.path + '.csv',
@@ -39,11 +37,20 @@ def build_features(
         index_col=False,
         low_memory=False,
     )
+    logging.info(f'Interim dataframe was read')
     df[no_time_features] = df[no_time_features].apply(pd.to_numeric,
                                                       errors='coerce',
                                                       downcast='float')
-    df.dropna(axis=0, inplace=True)
+    df.dropna(
+        axis=0,
+        inplace=True,
+        subset=no_time_features,
+    )
+    df.drop(columns='DATE', inplace=True, errors='ignore')
+    df.drop(columns=' DATE', inplace=True, errors='ignore')
+    logging.info(f'NAs and date columns droped')
     df.drop(df[df['STEP'] == 0].index, axis=0).reset_index(drop=True)
+    logging.info(f'Step zero removed')
     df['DRIVE_POWER'] = (df['M1 SPEED'] * df['M1 TORQUE'] * math.pi / 30 /
                          1e3).astype(float)
     df['LOAD_POWER'] = abs(df['D1 RPM'] * df['D1 TORQUE'] * math.pi / 30 /
@@ -62,10 +69,11 @@ def build_features(
                                1e3).astype(float)
     df['GEARBOX_COOLER_POWER'] = (df['M7 RPM'] * df['M7 Torque'] * math.pi /
                                   30 / 1e3).astype(float)
-    df['DURATION'] = pd.to_timedelta(range(len(df)), unit='s')
+    logging.info(f'Power features added')
     df['RUNNING_SECONDS'] = (pd.to_timedelta(range(
         len(df)), unit='s').total_seconds()).astype(int)
     df['RUNNING_HOURS'] = (df['RUNNING_SECONDS'] / 3600).astype(float)
+    logging.info(f'Time features added')
     df.columns = df.columns.str.lstrip()
     df.columns = df.columns.str.replace(' ', '_')
     df.to_csv(
@@ -73,7 +81,9 @@ def build_features(
                      'processed_data.csv'),
         index=False,
     )
+    logging.info(f'Processed dataframe uploaded to data storage')
     df.to_csv(
         processed_data.path + '.csv',
         index=False,
     )
+    logging.info(f'Processed dataframe uploaded to metadata store')

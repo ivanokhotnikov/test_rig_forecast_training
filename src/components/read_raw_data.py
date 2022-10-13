@@ -1,12 +1,9 @@
-import os
-
 from kfp.v2.dsl import Artifact, Dataset, Output, component
 
 
 @component(
     base_image='python:3.10-slim',
     packages_to_install=['pandas', 'openpyxl'],
-    output_component_file=os.path.join('configs', 'read_raw_gcs.yaml'),
 )
 def read_raw_data(
     interim_data: Output[Dataset],
@@ -22,6 +19,7 @@ def read_raw_data(
     import json
     import logging
     import os
+    import re
 
     import pandas as pd
 
@@ -46,23 +44,32 @@ def read_raw_data(
                     index_col=False,
                 )
             else:
-                logging.info(f'{file} is not a valid raw data file.')
+                logging.info(f'{file} is not a valid raw data file')
                 continue
         except:
-            logging.info(f'Can\'t read {file}.')
+            logging.info(f'Cannot read {file}')
             continue
-        logging.info(f'{file} has been read.')
-        name_list = file.split('-')
+        logging.info(f'{file} has been read')
         try:
-            unit = int(name_list[0][-3:].lstrip('0D'))
-        except ValueError:
-            unit = int(name_list[0].split('_')[0][-3:].lstrip('0D'))
+            unit = int(re.split(r'_|-|/', file)[0][4:].lstrip('HYD0'))
+        except ValueError as err:
+            logging.info(f'{err}\n. Cannot parse unit from {file}')
+            continue
         units.append(unit)
         current_df['UNIT'] = unit
         current_df['TEST'] = int(units.count(unit))
         final_df = pd.concat((final_df, current_df), ignore_index=True)
         del current_df
         gc.collect()
+    try:
+        final_df.sort_values(
+            by=[' DATE', 'TIME', 'DATE'],
+            inplace=True,
+            ignore_index=True
+        )
+        logging.info(f'Final dataframe sorted')
+    except:
+        logging.info('Cannot sort dataframe')
     final_df.to_csv(
         interim_data.path + '.csv',
         index=False,
@@ -72,5 +79,7 @@ def read_raw_data(
         os.path.join(interim_data_path, 'interim_data.csv'),
         index=False,
     )
+    logging.info('Interim dataframe uploaded to the metadata store')
     with open(all_features.path, 'w') as features_file:
         features_file.write(json.dumps(final_df.columns.to_list()))
+    logging.info('Features uploaded to the metadata store')

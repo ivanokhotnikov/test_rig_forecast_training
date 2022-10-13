@@ -1,5 +1,3 @@
-import os
-
 from kfp.v2.dsl import component, Input, Output, Dataset, Metrics, Model
 
 
@@ -11,7 +9,6 @@ from kfp.v2.dsl import component, Input, Output, Dataset, Metrics, Model
         'google-cloud-aiplatform',
         'protobuf==3.13.0',
     ],
-    output_component_file=os.path.join('configs', 'train.yaml'),
 )
 def train(
     feature: str,

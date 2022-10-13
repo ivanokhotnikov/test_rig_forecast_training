@@ -1,5 +1,3 @@
-import os
-
 from kfp.v2.dsl import Dataset, Input, Metrics, Model, Output, component
 
 
@@ -11,7 +9,6 @@ from kfp.v2.dsl import Dataset, Input, Metrics, Model, Output, component
         'google-cloud-aiplatform',
         'protobuf==3.13.0',
     ],
-    output_component_file=os.path.join('configs', 'evaluate.yaml'),
 )
 def evaluate(
     feature: str,
@@ -33,12 +30,11 @@ def evaluate(
         keras_model (Input[Model]): Keras model
         eval_metrics (Output[Metrics]): Metrics
     """
-    import os
     import json
+    import os
     from datetime import datetime
 
     import google.cloud.aiplatform as aip
-
     import joblib
     import numpy as np
     import pandas as pd
@@ -78,6 +74,6 @@ def evaluate(
         metrics_file.write(json.dumps(results))
     for k, v in results.items():
         metrics.log_metric(k, v)
-        aip.log_metrics({k: v})        
+        aip.log_metrics({k: v})
     metrics.metadata['feature'] = feature
     aip.end_run()

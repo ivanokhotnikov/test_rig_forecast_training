@@ -1,11 +1,10 @@
-import os
-
 from kfp.v2.dsl import Dataset, Input, Output, component
 
 
-@component(base_image='python:3.10-slim',
-           packages_to_install=['pandas'],
-           output_component_file=os.path.join('configs', 'split_data.yaml'))
+@component(
+    base_image='python:3.10-slim',
+    packages_to_install=['pandas'],
+)
 def split_data(
     train_data_size: float,
     processed_data: Input[Dataset],
