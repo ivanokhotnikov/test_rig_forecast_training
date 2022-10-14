@@ -48,8 +48,9 @@ def build_features(
     )
     df.drop(columns='DATE', inplace=True, errors='ignore')
     df.drop(columns=' DATE', inplace=True, errors='ignore')
+    df.drop(columns='DURATION', inplace=True, errors='ignore')
     logging.info(f'NAs and date columns droped')
-    df.drop(df[df['STEP'] == 0].index, axis=0).reset_index(drop=True)
+    df = df.drop(df[df['STEP'] == 0].index, axis=0).reset_index(drop=True)
     logging.info(f'Step zero removed')
     df['DRIVE_POWER'] = (df['M1 SPEED'] * df['M1 TORQUE'] * math.pi / 30 /
                          1e3).astype(float)
