@@ -44,6 +44,7 @@ def evaluate(
     REGION = 'europe-west2'
     EXP_NAME = feature.lower().replace('_', '-')
     TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')
+    EVAL_TIMESTAMP = datetime.now().strftime('%H:%M:%S %a %d %b %Y')
 
     aip.init(
         experiment=EXP_NAME,
@@ -67,6 +68,7 @@ def evaluate(
                                   verbose=1,
                                   batch_size=batch_size,
                                   return_dict=True)
+    results['evaluation_timestamp'] = EVAL_TIMESTAMP
     with open(metrics.path + '.json', 'w') as metrics_file:
         metrics_file.write(json.dumps(results))
     with open(os.path.join('gcs', 'models_forecasting', f'{feature}.json'),
