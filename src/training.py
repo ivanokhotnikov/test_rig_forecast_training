@@ -3,12 +3,13 @@ from datetime import datetime
 
 import google.cloud.aiplatform as aip
 from kfp.v2 import compiler
-from kfp.v2.dsl import Artifact, ParallelFor, importer, pipeline
+from kfp.v2.dsl import Artifact, ParallelFor, Condition, importer, pipeline
 
-from components import (build_features, evaluate, import_final_features,
-                        read_raw_data, split_data, train)
-from utils.constants import (PROJECT_ID, REGION, PIPELINES_BUCKET_URI,
-                             TRAIN_GPU, TRAIN_NGPU, VCPU, MEMORY_LIMIT)
+from components import (build_features, compare_models, evaluate,
+                        import_final_features, read_raw_data, split_data,
+                        train, upload_model_to_registry)
+from utils.constants import (MEMORY_LIMIT, PIPELINES_BUCKET_URI, PROJECT_ID,
+                             REGION, TRAIN_NGPU, VCPU)
 
 
 @pipeline(name='training-pipeline', pipeline_root=PIPELINES_BUCKET_URI)
@@ -61,17 +62,28 @@ def training_pipeline(
         .set_memory_limit(MEMORY_LIMIT)
         .add_node_selector_constraint('cloud.google.com/gke-accelerator','NVIDIA_TESLA_T4')\
         .set_gpu_limit(TRAIN_NGPU))
+        compare_task = compare_models(
+            feature=feature,
+            challenger_metrics=evaluate_task.outputs['metrics'],
+        )
+        with Condition(compare_task.output=='True'):
+            upload_model_to_registry(
+                feature=feature,
+                scaler_model=train_task.outputs['scaler_model'],
+                keras_model=train_task.outputs['keras_model'],
+                eval_metrics=evaluate_task.outputs['metrics'],
+            )
 
 
 if __name__ == '__main__':
+    compiler.Compiler().compile(
+        pipeline_func=training_pipeline,
+        package_path=os.path.join('configs', 'training_pipeline.json'),
+    )
     aip.init(
         project=PROJECT_ID,
         location=REGION,
         staging_bucket=PIPELINES_BUCKET_URI,
-    )
-    compiler.Compiler().compile(
-        pipeline_func=training_pipeline,
-        package_path=os.path.join('configs', 'training_pipeline.json'),
     )
     job = aip.PipelineJob(
         enable_caching=True,
@@ -85,7 +97,7 @@ if __name__ == '__main__':
             'learning_rate': 0.01,
             'epochs': 60,
             'batch_size': 256,
-            'patience': 5,
+            'patience': 10,
         },
     )
-    job.run()
+    job.submit()

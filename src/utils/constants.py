@@ -20,10 +20,8 @@ MACHINE_TYPE = 'n1-standard'
 VCPU = '8'
 TRAIN_COMPUTE = MACHINE_TYPE + '-' + VCPU
 MEMORY_LIMIT = '32G'
-SLEEP_TIME = 1.1
+SLEEP_TIME = 1.05
 
-VERTEX_REGIONS = {
-    'europe-west1', 'europe-west2', 'europe-west4', 'us-central1'
-}
+VERTEX_REGIONS = {'europe-west1', 'europe-west2', 'europe-west4'}
 
 STORAGE_CLIENT = storage.Client()

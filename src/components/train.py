@@ -1,4 +1,4 @@
-from kfp.v2.dsl import component, Input, Output, Dataset, Metrics, Model
+from kfp.v2.dsl import Dataset, Input, Metrics, Model, Output, component
 
 
 @component(
@@ -59,10 +59,6 @@ def train(
         scaler,
         scaler_model.path + '.joblib',
     )
-    joblib.dump(
-        scaler,
-        os.path.join('gcs', 'models_forecasting', f'{feature}.joblib'),
-    )
     x_train, y_train = [], []
     for i in range(lookback, len(scaled_train_data)):
         x_train.append(scaled_train_data[i - lookback:i])
@@ -106,8 +102,8 @@ def train(
                                          'gcs',
                                          'test_rig_pipelines',
                                          'tb',
-                                         feature,
                                          TIMESTAMP,
+                                         feature,
                                      ),
                                      histogram_freq=1,
                                      write_graph=True,
@@ -121,39 +117,3 @@ def train(
     metrics.metadata['feature'] = feature
     keras_model.metadata['feature'] = feature
     forecaster.save(keras_model.path + '.h5')
-    forecaster.save(os.path.join('gcs', 'models_forecasting', f'{feature}.h5'))
-    # aip.init(
-    #     project=PROJECT_ID,
-    #     location=REGION,
-    # )
-    # models = [
-    #     model.display_name for model in aip.Model.list(
-    #         project=PROJECT_ID,
-    #         location=REGION,
-    #     )
-    # ]
-    # if feature not in models:
-    #     _ = aip.Model.upload(
-    #         project=PROJECT_ID,
-    #         location=REGION,
-    #         display_name=feature,
-    #         artifact_uri=f'{MODELS_BUCKET_URI}/{feature}',
-    #         serving_container_image_uri=SERVING_IMAGE,
-    #         is_default_version=True,
-    #     )
-    # else:
-    #     for model in aip.Model.list(
-    #             project=PROJECT_ID,
-    #             location=REGION,
-    #     ):
-    #         if model.display_name == feature:
-    #             _ = aip.Model.upload(
-    #                 project=PROJECT_ID,
-    #                 location=REGION,
-    #                 parent_model=model.name,
-    #                 display_name=feature,
-    #                 artifact_uri=f'{MODELS_BUCKET_URI}/{feature}',
-    #                 serving_container_image_uri=SERVING_IMAGE,
-    #                 is_default_version=True,
-    #             )
-    #             break

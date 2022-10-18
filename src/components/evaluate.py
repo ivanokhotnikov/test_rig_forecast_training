@@ -71,9 +71,6 @@ def evaluate(
     results['evaluation_timestamp'] = EVAL_TIMESTAMP
     with open(metrics.path + '.json', 'w') as metrics_file:
         metrics_file.write(json.dumps(results))
-    with open(os.path.join('gcs', 'models_forecasting', f'{feature}.json'),
-              'w') as metrics_file:
-        metrics_file.write(json.dumps(results))
     for k, v in results.items():
         metrics.log_metric(k, v)
         aip.log_metrics({k: v})
