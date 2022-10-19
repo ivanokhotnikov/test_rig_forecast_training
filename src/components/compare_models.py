@@ -3,7 +3,6 @@ from kfp.v2.dsl import Input, Metrics, component
 
 @component(base_image='python:3.10-slim')
 def compare_models(
-    feature: str,
     challenger_metrics: Input[Metrics],
     champion_metrics: Input[Metrics],
     evaluation_metric: str = 'root_mean_squared_error',

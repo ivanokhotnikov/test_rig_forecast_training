@@ -65,7 +65,6 @@ def training_pipeline(
         .set_gpu_limit(TRAIN_NGPU))
         import_champion_metrics_task = import_champion_metrics(feature=feature)
         compare_task = compare_models(
-            feature=feature,
             challenger_metrics=evaluate_task.outputs['eval_metrics'],
             champion_metrics=import_champion_metrics_task.
             outputs['champion_metrics'],
@@ -99,7 +98,7 @@ if __name__ == '__main__':
             'lookback': 120,
             'lstm_units': 5,
             'learning_rate': 0.01,
-            'epochs': 100,
+            'epochs': 150,
             'batch_size': 256,
             'patience': 10,
         },
