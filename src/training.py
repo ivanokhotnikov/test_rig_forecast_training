@@ -3,11 +3,12 @@ from datetime import datetime
 
 import google.cloud.aiplatform as aip
 from kfp.v2 import compiler
-from kfp.v2.dsl import Artifact, ParallelFor, Condition, importer, pipeline
+from kfp.v2.dsl import Artifact, Condition, ParallelFor, importer, pipeline
 
 from components import (build_features, compare_models, evaluate,
-                        import_final_features, read_raw_data, split_data,
-                        train, upload_model_to_registry)
+                        import_champion_metrics, import_final_features,
+                        read_raw_data, split_data, train,
+                        upload_model_to_registry)
 from utils.constants import (MEMORY_LIMIT, PIPELINES_BUCKET_URI, PROJECT_ID,
                              REGION, TRAIN_NGPU, VCPU)
 
@@ -62,16 +63,19 @@ def training_pipeline(
         .set_memory_limit(MEMORY_LIMIT)
         .add_node_selector_constraint('cloud.google.com/gke-accelerator','NVIDIA_TESLA_T4')\
         .set_gpu_limit(TRAIN_NGPU))
+        import_champion_metrics_task = import_champion_metrics(feature=feature)
         compare_task = compare_models(
             feature=feature,
-            challenger_metrics=evaluate_task.outputs['metrics'],
+            challenger_metrics=evaluate_task.outputs['eval_metrics'],
+            champion_metrics=import_champion_metrics_task.
+            outputs['champion_metrics'],
         )
-        with Condition(compare_task.output=='True'):
+        with Condition(compare_task.output == 'true'):
             upload_model_to_registry(
                 feature=feature,
                 scaler_model=train_task.outputs['scaler_model'],
                 keras_model=train_task.outputs['keras_model'],
-                eval_metrics=evaluate_task.outputs['metrics'],
+                metrics=evaluate_task.outputs['eval_metrics'],
             )
 
 
@@ -95,7 +99,7 @@ if __name__ == '__main__':
             'lookback': 120,
             'lstm_units': 5,
             'learning_rate': 0.01,
-            'epochs': 60,
+            'epochs': 100,
             'batch_size': 256,
             'patience': 10,
         },

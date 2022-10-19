@@ -6,3 +6,4 @@ from .evaluate import evaluate
 from .import_final_features import import_final_features
 from .compare_models import compare_models
 from .upload_model_to_registry import upload_model_to_registry
+from .import_champion_metrics import import_champion_metrics

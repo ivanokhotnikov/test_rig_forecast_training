@@ -17,7 +17,7 @@ def evaluate(
     test_data: Input[Dataset],
     scaler_model: Input[Model],
     keras_model: Input[Model],
-    metrics: Output[Metrics],
+    eval_metrics: Output[Metrics],
 ) -> None:
     """Evaluates the trained keras model, saves the evaludation metrics to the metadata store
 
@@ -69,10 +69,10 @@ def evaluate(
                                   batch_size=batch_size,
                                   return_dict=True)
     results['evaluation_timestamp'] = EVAL_TIMESTAMP
-    with open(metrics.path + '.json', 'w') as metrics_file:
+    with open(eval_metrics.path + '.json', 'w') as metrics_file:
         metrics_file.write(json.dumps(results))
     for k, v in results.items():
-        metrics.log_metric(k, v)
+        eval_metrics.log_metric(k, v)
         aip.log_metrics({k: v})
-    metrics.metadata['feature'] = feature
+    eval_metrics.metadata['feature'] = feature
     aip.end_run()

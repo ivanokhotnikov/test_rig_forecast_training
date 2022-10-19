@@ -21,7 +21,7 @@ def train(
     train_data: Input[Dataset],
     scaler_model: Output[Model],
     keras_model: Output[Model],
-    metrics: Output[Metrics],
+    train_metrics: Output[Metrics],
 ) -> None:
     """Instantiates, trains the RNN model on the train dataset. Saves the trained scaler and the keras model to the metadata store, saves the evaluation metrics file as well.
 
@@ -36,7 +36,7 @@ def train(
         train_data (Input[Dataset]): Train dataset
         scaler_model (Output[Model]): Scaler model
         keras_model (Output[Model]): Keras model
-        metrics (Output[Metrics]): Metrics
+        train_metrics (Output[Metrics]): Metrics
     """
     import os
     from datetime import datetime
@@ -113,7 +113,7 @@ def train(
                              ])
     for k, v in history.history.items():
         history.history[k] = [float(vi) for vi in v]
-        metrics.log_metric(k, history.history[k])
-    metrics.metadata['feature'] = feature
+        train_metrics.log_metric(k, history.history[k])
+    train_metrics.metadata['feature'] = feature
     keras_model.metadata['feature'] = feature
     forecaster.save(keras_model.path + '.h5')

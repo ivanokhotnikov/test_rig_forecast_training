@@ -1,12 +1,12 @@
-from kfp.v2.dsl import Artifact, Input, Metrics, Output, component
+from kfp.v2.dsl import Input, Metrics, component
 
 
 @component(base_image='python:3.10-slim')
 def compare_models(
     feature: str,
     challenger_metrics: Input[Metrics],
+    champion_metrics: Input[Metrics],
     evaluation_metric: str = 'root_mean_squared_error',
-    higher_is_better: bool = False,
     absolute_difference: float = 0.0,
 ) -> bool:
     """
@@ -17,8 +17,7 @@ def compare_models(
     import os
 
     logging.basicConfig(level=logging.INFO)
-    with open(os.path.join('gcs', 'models_forecasting',
-                           f'{feature}.json')) as champ:
+    with open(champion_metrics.path + '.json') as champ:
         champ_metrics_dict = json.load(champ)
     with open(challenger_metrics.path + '.json') as chal:
         challenger_metrics_dict = json.load(chal)
@@ -29,9 +28,11 @@ def compare_models(
         logging.info("Since absolute_difference is None, setting it to 0.")
         absolute_difference = 0.0
     champ_val = champ_metrics_dict[evaluation_metric]
+    logging.info(f'Champion metric = {champ_val:.2e}')
     chal_val = challenger_metrics_dict[evaluation_metric]
+    logging.info(f'Challenger metric = {chal_val:.2e}')
     abs_diff = abs(absolute_difference)
     diff = chal_val - champ_val
-    chal_is_better = (diff >= abs_diff) if higher_is_better else (
-        diff <= abs_diff)
+    chal_is_better = (diff <= abs_diff)
+    logging.info(f'Challenger is better = {chal_is_better}')
     return chal_is_better
