@@ -25,7 +25,7 @@ def read_raw_data(
 
     logging.basicConfig(level=logging.INFO)
     final_df = pd.DataFrame()
-    raw_data_path = os.path.join('gcs', 'test_rig_data', 'raw')
+    raw_data_path = os.path.join('gcs', 'test_rig_raw_data')
     units = []
     for file in os.listdir(raw_data_path):
         logging.info(f'Reading {file} from {raw_data_path}')
@@ -62,11 +62,9 @@ def read_raw_data(
         del current_df
         gc.collect()
     try:
-        final_df.sort_values(
-            by=['UNIT', 'TEST'],
-            inplace=True,
-            ignore_index=True
-        )
+        final_df.sort_values(by=['UNIT', 'TEST'],
+                             inplace=True,
+                             ignore_index=True)
         logging.info(f'Final dataframe sorted')
     except:
         logging.info('Cannot sort dataframe')
@@ -74,12 +72,17 @@ def read_raw_data(
         interim_data.path + '.csv',
         index=False,
     )
-    interim_data_path = os.path.join('gcs', 'test_rig_data', 'interim')
+    logging.info('Interim dataframe uploaded to the piepline metadata store')
     final_df.to_csv(
-        os.path.join(interim_data_path, 'interim_data.csv'),
+        os.path.join('gcs', 'test_rig_interim_data', 'interim_data.csv'),
         index=False,
     )
-    logging.info('Interim dataframe uploaded to the metadata store')
-    with open(all_features.path, 'w') as features_file:
-        features_file.write(json.dumps(final_df.columns.to_list()))
-    logging.info('Features uploaded to the metadata store')
+    logging.info('Interim dataframe uploaded to the interim data storage')
+    with open(all_features.path + '.json', 'w') as features_file:
+        json.dump(final_df.columns.to_list(), features_file)
+    logging.info('Interim data features uploaded to the pipeline metadata store')
+    with open(
+            os.path.join('gcs', 'test_rig_features',
+                         'interim_data_features.json'), 'w') as features_file:
+        json.dump(final_df.columns.to_list(), features_file)
+    logging.info('Interim data features uploaded to the featues store')

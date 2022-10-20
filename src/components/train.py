@@ -101,8 +101,7 @@ def train(
                                      log_dir=os.path.join(
                                          'gcs',
                                          'test_rig_pipelines',
-                                         'tb',
-                                         TIMESTAMP,
+                                         'tensorboards',
                                          feature,
                                      ),
                                      histogram_freq=1,

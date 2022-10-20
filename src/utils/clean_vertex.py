@@ -111,7 +111,7 @@ def clean_vertex(
                 logging.info(f'Metadata store has been cleaned in {loc}')
             if clean_tensorboard_events:
                 for blob in STORAGE_CLIENT.list_blobs(
-                        bucket_or_name=PIPELINES_BUCKET_NAME, prefix='tb'):
+                        bucket_or_name=PIPELINES_BUCKET_NAME, prefix='tensorboards'):
                     blob.delete()
                 logging.info(f'Tensorboard events have been cleaned in {loc}')
         except NotFound as NotFoundError:

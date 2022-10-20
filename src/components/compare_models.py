@@ -13,7 +13,6 @@ def compare_models(
     """
     import json
     import logging
-    import os
 
     logging.basicConfig(level=logging.INFO)
     with open(champion_metrics.path + '.json') as champ:

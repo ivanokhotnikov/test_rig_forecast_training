@@ -78,11 +78,10 @@ def build_features(
     df.columns = df.columns.str.lstrip()
     df.columns = df.columns.str.replace(' ', '_')
     df.to_csv(
-        os.path.join('gcs', 'test_rig_data', 'processed',
-                     'processed_data.csv'),
+        os.path.join('gcs', 'test_rig_processed_data', 'processed_data.csv'),
         index=False,
     )
-    logging.info(f'Processed dataframe uploaded to data storage')
+    logging.info(f'Processed dataframe uploaded to processed data storage')
     df.to_csv(
         processed_data.path + '.csv',
         index=False,

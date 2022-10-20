@@ -24,7 +24,7 @@ def training_pipeline(
     patience: int,
 ) -> None:
     raw_features_import = importer(
-        artifact_uri='gs://test_rig_data/features/raw_features.json',
+        artifact_uri='gs://test_rig_features/raw_features.json',
         artifact_class=Artifact,
     )
     read_raw_data_task = read_raw_data()
@@ -100,7 +100,7 @@ if __name__ == '__main__':
             'learning_rate': 0.01,
             'epochs': 150,
             'batch_size': 256,
-            'patience': 10,
+            'patience': 20,
         },
     )
     job.submit()

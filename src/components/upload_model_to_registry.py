@@ -23,7 +23,7 @@ def upload_model_to_registry(
     )
     forecaster = keras.models.load_model(keras_model.path + '.h5')
     forecaster.save(os.path.join('gcs', 'models_forecasting', f'{feature}.h5'))
-    with open(metrics.path + '.json') as pipeline_metrics_file:
+    with open(metrics.path + '.json', 'r') as pipeline_metrics_file:
         eval_metrics_dict = json.load(pipeline_metrics_file)
     with open(os.path.join('gcs', 'models_forecasting', f'{feature}.json'),
               'w') as registry_metrics_file:

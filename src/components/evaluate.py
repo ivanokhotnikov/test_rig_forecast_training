@@ -31,7 +31,6 @@ def evaluate(
         eval_metrics (Output[Metrics]): Metrics
     """
     import json
-    import os
     from datetime import datetime
 
     import google.cloud.aiplatform as aip
