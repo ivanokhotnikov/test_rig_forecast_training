@@ -6,7 +6,7 @@ from kfp.v2 import compiler
 from kfp.v2.dsl import Artifact, Condition, ParallelFor, importer, pipeline
 
 from components import (build_features, compare_models, evaluate,
-                        import_champion_metrics, import_processed_features,
+                        import_champion_metrics, import_forecast_features,
                         read_raw_data, split_data, train,
                         upload_model_to_registry)
 from utils.constants import (MEMORY_LIMIT, PIPELINES_BUCKET_URI, PROJECT_ID,
@@ -35,8 +35,8 @@ def training_pipeline(
     split_data_task = split_data(
         train_data_size=train_data_size,
         processed_data=build_features_task.outputs['processed_data'])
-    final_features_import = import_processed_features()
-    with ParallelFor(final_features_import.output) as feature:
+    forecast_features_import = import_forecast_features()
+    with ParallelFor(forecast_features_import.output) as feature:
         train_task = (train(
             feature=feature,
             lookback=lookback,
