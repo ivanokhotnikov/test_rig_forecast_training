@@ -7,7 +7,7 @@ from kfp.v2.dsl import Artifact, Dataset, Output, component
 )
 def read_raw_data(
     interim_data: Output[Dataset],
-    all_features: Output[Artifact],
+    raw_features: Output[Artifact],
 ) -> None:
     """Read raw data files from the GCS bucket, specified by `bucket_name`. Uploads the combined data frame to the interim data directory in the GCS bucket.
 
@@ -78,11 +78,11 @@ def read_raw_data(
         index=False,
     )
     logging.info('Interim dataframe uploaded to the interim data storage')
-    with open(all_features.path + '.json', 'w') as features_file:
+    with open(raw_features.path + '.json', 'w') as features_file:
         json.dump(final_df.columns.to_list(), features_file)
-    logging.info('Interim data features uploaded to the pipeline metadata store')
+    logging.info('Raw features uploaded to the pipeline metadata store')
     with open(
             os.path.join('gcs', 'test_rig_features',
-                         'interim_data_features.json'), 'w') as features_file:
+                         'raw_features.json'), 'w') as features_file:
         json.dump(final_df.columns.to_list(), features_file)
-    logging.info('Interim data features uploaded to the featues store')
+    logging.info('Raw features uploaded to the featues store')

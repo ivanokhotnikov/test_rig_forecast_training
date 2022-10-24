@@ -6,7 +6,7 @@ from kfp.v2 import compiler
 from kfp.v2.dsl import Artifact, Condition, ParallelFor, importer, pipeline
 
 from components import (build_features, compare_models, evaluate,
-                        import_champion_metrics, import_final_features,
+                        import_champion_metrics, import_processed_features,
                         read_raw_data, split_data, train,
                         upload_model_to_registry)
 from utils.constants import (MEMORY_LIMIT, PIPELINES_BUCKET_URI, PROJECT_ID,
@@ -23,19 +23,19 @@ def training_pipeline(
     batch_size: int,
     patience: int,
 ) -> None:
-    raw_features_import = importer(
-        artifact_uri='gs://test_rig_features/raw_features.json',
+    interim_features_import = importer(
+        artifact_uri='gs://test_rig_features/interim_features.json',
         artifact_class=Artifact,
-    )
+    ).set_display_name('import interim features')
     read_raw_data_task = read_raw_data()
     build_features_task = build_features(
-        raw_features=raw_features_import.output,
+        interim_features=interim_features_import.output,
         interim_data=read_raw_data_task.outputs['interim_data'],
     )
     split_data_task = split_data(
         train_data_size=train_data_size,
         processed_data=build_features_task.outputs['processed_data'])
-    final_features_import = import_final_features()
+    final_features_import = import_processed_features()
     with ParallelFor(final_features_import.output) as feature:
         train_task = (train(
             feature=feature,
@@ -69,7 +69,7 @@ def training_pipeline(
             champion_metrics=import_champion_metrics_task.
             outputs['champion_metrics'],
         )
-        with Condition(compare_task.output == 'true'):
+        with Condition(compare_task.output == 'true', name='chall better'):
             upload_model_to_registry(
                 feature=feature,
                 scaler_model=train_task.outputs['scaler_model'],
@@ -98,7 +98,7 @@ if __name__ == '__main__':
             'lookback': 120,
             'lstm_units': 5,
             'learning_rate': 0.01,
-            'epochs': 150,
+            'epochs': 200,
             'batch_size': 256,
             'patience': 20,
         },

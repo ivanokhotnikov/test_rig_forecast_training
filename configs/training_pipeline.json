@@ -11,7 +11,7 @@
                 "schemaVersion": "0.0.1"
               }
             },
-            "raw_features": {
+            "interim_features": {
               "artifactType": {
                 "schemaTitle": "system.Artifact",
                 "schemaVersion": "0.0.1"
@@ -24,6 +24,12 @@
             "processed_data": {
               "artifactType": {
                 "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "processed_features": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
                 "schemaVersion": "0.0.1"
               }
             }
@@ -64,7 +70,7 @@
           }
         }
       },
-      "comp-condition-2": {
+      "comp-condition-chall-better-2": {
         "dag": {
           "tasks": {
             "upload-model-to-registry": {
@@ -88,7 +94,7 @@
                 },
                 "parameters": {
                   "feature": {
-                    "componentInputParameter": "pipelineparam--import-final-features-Output-loop-item"
+                    "componentInputParameter": "pipelineparam--import-processed-features-Output-loop-item"
                   }
                 }
               },
@@ -123,7 +129,7 @@
             "pipelineparam--compare-models-Output": {
               "type": "STRING"
             },
-            "pipelineparam--import-final-features-Output-loop-item": {
+            "pipelineparam--import-processed-features-Output-loop-item": {
               "type": "STRING"
             }
           }
@@ -253,9 +259,9 @@
                 "name": "compare-models"
               }
             },
-            "condition-2": {
+            "condition-chall better-2": {
               "componentRef": {
-                "name": "comp-condition-2"
+                "name": "comp-condition-chall-better-2"
               },
               "dependentTasks": [
                 "compare-models",
@@ -290,13 +296,13 @@
                       "producerTask": "compare-models"
                     }
                   },
-                  "pipelineparam--import-final-features-Output-loop-item": {
-                    "componentInputParameter": "pipelineparam--import-final-features-Output-loop-item"
+                  "pipelineparam--import-processed-features-Output-loop-item": {
+                    "componentInputParameter": "pipelineparam--import-processed-features-Output-loop-item"
                   }
                 }
               },
               "taskInfo": {
-                "name": "condition-2"
+                "name": "condition-chall better-2"
               },
               "triggerPolicy": {
                 "condition": "inputs.parameters['pipelineparam--compare-models-Output'].string_value == 'true'"
@@ -335,7 +341,7 @@
                     "componentInputParameter": "pipelineparam--batch_size"
                   },
                   "feature": {
-                    "componentInputParameter": "pipelineparam--import-final-features-Output-loop-item"
+                    "componentInputParameter": "pipelineparam--import-processed-features-Output-loop-item"
                   },
                   "lookback": {
                     "componentInputParameter": "pipelineparam--lookback"
@@ -356,7 +362,7 @@
               "inputs": {
                 "parameters": {
                   "feature": {
-                    "componentInputParameter": "pipelineparam--import-final-features-Output-loop-item"
+                    "componentInputParameter": "pipelineparam--import-processed-features-Output-loop-item"
                   }
                 }
               },
@@ -385,7 +391,7 @@
                     "componentInputParameter": "pipelineparam--epochs"
                   },
                   "feature": {
-                    "componentInputParameter": "pipelineparam--import-final-features-Output-loop-item"
+                    "componentInputParameter": "pipelineparam--import-processed-features-Output-loop-item"
                   },
                   "learning_rate": {
                     "componentInputParameter": "pipelineparam--learning_rate"
@@ -429,10 +435,10 @@
             "pipelineparam--epochs": {
               "type": "INT"
             },
-            "pipelineparam--import-final-features-Output": {
+            "pipelineparam--import-processed-features-Output": {
               "type": "STRING"
             },
-            "pipelineparam--import-final-features-Output-loop-item": {
+            "pipelineparam--import-processed-features-Output-loop-item": {
               "type": "STRING"
             },
             "pipelineparam--learning_rate": {
@@ -492,8 +498,8 @@
           }
         }
       },
-      "comp-import-final-features": {
-        "executorLabel": "exec-import-final-features",
+      "comp-import-processed-features": {
+        "executorLabel": "exec-import-processed-features",
         "outputDefinitions": {
           "parameters": {
             "Output": {
@@ -526,15 +532,15 @@
         "executorLabel": "exec-read-raw-data",
         "outputDefinitions": {
           "artifacts": {
-            "all_features": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact",
-                "schemaVersion": "0.0.1"
-              }
-            },
             "interim_data": {
               "artifactType": {
                 "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "raw_features": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
                 "schemaVersion": "0.0.1"
               }
             }
@@ -681,7 +687,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef build_features(\n    raw_features: Input[Artifact],\n    interim_data: Input[Dataset],\n    processed_data: Output[Dataset],\n) -> None:\n    \"\"\"\n    Read the interim data, build features (float down casting, removes NaNs and the step zero data, calculates and adds to the processed data the power and time features), saves the processed data.\n\n    Args:\n        raw_features (Input[Artifact]): Raw features json artifact\n        interim_data (Input[Dataset]): Interim dataset\n        processed_data (Output[Dataset]): Processed dataset\n    \"\"\"\n    import json\n    import logging\n    import math\n    import os\n\n    import pandas as pd\n\n    with open(raw_features.path, 'r') as features_file:\n        raw_features_list = list(json.loads(features_file.read()))\n    no_time_features = [\n        f for f in raw_features_list if f not in ('TIME', ' DATE', 'DATE')\n    ]\n    df = pd.read_csv(\n        interim_data.path + '.csv',\n        usecols=raw_features_list,\n        header=0,\n        index_col=False,\n        low_memory=False,\n    )\n    logging.info(f'Interim dataframe was read')\n    df[no_time_features] = df[no_time_features].apply(pd.to_numeric,\n                                                      errors='coerce',\n                                                      downcast='float')\n    df.dropna(\n        axis=0,\n        inplace=True,\n        subset=no_time_features,\n    )\n    df.drop(columns='DATE', inplace=True, errors='ignore')\n    df.drop(columns=' DATE', inplace=True, errors='ignore')\n    df.drop(columns='DURATION', inplace=True, errors='ignore')\n    logging.info(f'NAs and date columns droped')\n    df = df.drop(df[df['STEP'] == 0].index, axis=0).reset_index(drop=True)\n    logging.info(f'Step zero removed')\n    df['DRIVE_POWER'] = (df['M1 SPEED'] * df['M1 TORQUE'] * math.pi / 30 /\n                         1e3).astype(float)\n    df['LOAD_POWER'] = abs(df['D1 RPM'] * df['D1 TORQUE'] * math.pi / 30 /\n                           1e3).astype(float)\n    df['CHARGE_MECH_POWER'] = (df['M2 RPM'] * df['M2 Torque'] * math.pi / 30 /\n                               1e3).astype(float)\n    df['CHARGE_HYD_POWER'] = (df['CHARGE PT'] * 1e5 * df['CHARGE FLOW'] *\n                              1e-3 / 60 / 1e3).astype(float)\n    df['SERVO_MECH_POWER'] = (df['M3 RPM'] * df['M3 Torque'] * math.pi / 30 /\n                              1e3).astype(float)\n    df['SERVO_HYD_POWER'] = (df['Servo PT'] * 1e5 * df['SERVO FLOW'] * 1e-3 /\n                             60 / 1e3).astype(float)\n    df['SCAVENGE_POWER'] = (df['M5 RPM'] * df['M5 Torque'] * math.pi / 30 /\n                            1e3).astype(float)\n    df['MAIN_COOLER_POWER'] = (df['M6 RPM'] * df['M6 Torque'] * math.pi / 30 /\n                               1e3).astype(float)\n    df['GEARBOX_COOLER_POWER'] = (df['M7 RPM'] * df['M7 Torque'] * math.pi /\n                                  30 / 1e3).astype(float)\n    logging.info(f'Power features added')\n    df['RUNNING_SECONDS'] = (pd.to_timedelta(range(\n        len(df)), unit='s').total_seconds()).astype(int)\n    df['RUNNING_HOURS'] = (df['RUNNING_SECONDS'] / 3600).astype(float)\n    logging.info(f'Time features added')\n    df.columns = df.columns.str.lstrip()\n    df.columns = df.columns.str.replace(' ', '_')\n    df.to_csv(\n        os.path.join('gcs', 'test_rig_processed_data', 'processed_data.csv'),\n        index=False,\n    )\n    logging.info(f'Processed dataframe uploaded to processed data storage')\n    df.to_csv(\n        processed_data.path + '.csv',\n        index=False,\n    )\n    logging.info(f'Processed dataframe uploaded to metadata store')\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef build_features(\n    interim_features: Input[Artifact],\n    interim_data: Input[Dataset],\n    processed_data: Output[Dataset],\n    processed_features: Output[Artifact],\n) -> None:\n    \"\"\"\n    Read the interim data, build features (float down casting, removes NaNs and the step zero data, calculates and adds to the processed data the power and time features), saves the processed data.\n\n    Args:\n        processed_features (Input[Artifact]): Raw features json artifact\n        interim_data (Input[Dataset]): Interim dataset\n        processed_data (Output[Dataset]): Processed dataset\n        processed_features (Output[Artifact]): Processed features\n    \"\"\"\n    import json\n    import logging\n    import math\n    import os\n\n    import pandas as pd\n\n    with open(interim_features.path, 'r') as features_file:\n        interim_features_list = list(json.loads(features_file.read()))\n    no_time_features = [\n        f for f in interim_features_list if f not in ('TIME', ' DATE', 'DATE')\n    ]\n    df = pd.read_csv(\n        interim_data.path + '.csv',\n        usecols=interim_features_list,\n        header=0,\n        index_col=False,\n        low_memory=False,\n    )\n    logging.info(f'Interim dataframe was read')\n    df[no_time_features] = df[no_time_features].apply(pd.to_numeric,\n                                                      errors='coerce',\n                                                      downcast='float')\n    df.dropna(\n        axis=0,\n        inplace=True,\n        subset=no_time_features,\n    )\n    df.drop(columns='DATE', inplace=True, errors='ignore')\n    df.drop(columns=' DATE', inplace=True, errors='ignore')\n    df.drop(columns='DURATION', inplace=True, errors='ignore')\n    logging.info(f'NAs and date columns droped')\n    df = df.drop(df[df['STEP'] == 0].index, axis=0).reset_index(drop=True)\n    logging.info(f'Step zero removed')\n    df['DRIVE_POWER'] = (df['M1 SPEED'] * df['M1 TORQUE'] * math.pi / 30 /\n                         1e3).astype(float)\n    df['LOAD_POWER'] = abs(df['D1 RPM'] * df['D1 TORQUE'] * math.pi / 30 /\n                           1e3).astype(float)\n    df['CHARGE_MECH_POWER'] = (df['M2 RPM'] * df['M2 Torque'] * math.pi / 30 /\n                               1e3).astype(float)\n    df['CHARGE_HYD_POWER'] = (df['CHARGE PT'] * 1e5 * df['CHARGE FLOW'] *\n                              1e-3 / 60 / 1e3).astype(float)\n    df['SERVO_MECH_POWER'] = (df['M3 RPM'] * df['M3 Torque'] * math.pi / 30 /\n                              1e3).astype(float)\n    df['SERVO_HYD_POWER'] = (df['Servo PT'] * 1e5 * df['SERVO FLOW'] * 1e-3 /\n                             60 / 1e3).astype(float)\n    df['SCAVENGE_POWER'] = (df['M5 RPM'] * df['M5 Torque'] * math.pi / 30 /\n                            1e3).astype(float)\n    df['MAIN_COOLER_POWER'] = (df['M6 RPM'] * df['M6 Torque'] * math.pi / 30 /\n                               1e3).astype(float)\n    df['GEARBOX_COOLER_POWER'] = (df['M7 RPM'] * df['M7 Torque'] * math.pi /\n                                  30 / 1e3).astype(float)\n    logging.info(f'Power features added')\n    df['RUNNING_SECONDS'] = (pd.to_timedelta(range(\n        len(df)), unit='s').total_seconds()).astype(int)\n    df['RUNNING_HOURS'] = (df['RUNNING_SECONDS'] / 3600).astype(float)\n    logging.info(f'Time features added')\n    df.columns = df.columns.str.lstrip()\n    df.columns = df.columns.str.replace(' ', '_')\n    df.to_csv(\n        os.path.join('gcs', 'test_rig_processed_data', 'processed_data.csv'),\n        index=False,\n    )\n    logging.info(f'Processed dataframe uploaded to processed data storage')\n    df.to_csv(\n        processed_data.path + '.csv',\n        index=False,\n    )\n    logging.info(f'Processed dataframe uploaded to metadata store')\n    with open(processed_features.path + '.json', 'w') as features_file:\n        json.dump(df.columns.to_list(), features_file)\n    logging.info('Processed features uploaded to the pipeline metadata store')\n    with open(\n            os.path.join('gcs', 'test_rig_features',\n                         'processed_features.json'), 'w') as features_file:\n        json.dump(df.columns.to_list(), features_file)\n    logging.info('Processed features uploaded to the featues store')\n\n"
             ],
             "image": "python:3.10-slim"
           }
@@ -729,8 +735,8 @@
                 "count": "2",
                 "type": "NVIDIA_TESLA_T4"
               },
-              "cpuLimit": 8.0,
-              "memoryLimit": 32.0
+              "cpuLimit": 4.0,
+              "memoryLimit": 16.0
             }
           }
         },
@@ -754,13 +760,13 @@
             "image": "python:3.10-slim"
           }
         },
-        "exec-import-final-features": {
+        "exec-import-processed-features": {
           "container": {
             "args": [
               "--executor_input",
               "{{$}}",
               "--function_to_execute",
-              "import_final_features"
+              "import_processed_features"
             ],
             "command": [
               "sh",
@@ -769,7 +775,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef import_final_features() -> str:\n    import json\n    import os\n    with open(os.path.join('gcs', 'test_rig_features', 'final_features.json'),\n              'r') as final_features_file:\n        final_features = json.loads(final_features_file.read())\n    return json.dumps(final_features)\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef import_processed_features() -> str:\n    import json\n    import os\n    with open(os.path.join('gcs', 'test_rig_features', 'processed_features.json'),\n              'r') as final_features_file:\n        processed_features = json.loads(final_features_file.read())\n    return json.dumps(processed_features)\n\n"
             ],
             "image": "python:3.10-slim"
           }
@@ -778,7 +784,7 @@
           "importer": {
             "artifactUri": {
               "constantValue": {
-                "stringValue": "gs://test_rig_features/raw_features.json"
+                "stringValue": "gs://test_rig_features/interim_features.json"
               }
             },
             "typeSchema": {
@@ -802,7 +808,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef read_raw_data(\n    interim_data: Output[Dataset],\n    all_features: Output[Artifact],\n) -> None:\n    \"\"\"Read raw data files from the GCS bucket, specified by `bucket_name`. Uploads the combined data frame to the interim data directory in the GCS bucket.\n\n    Args:\n        interim_data (Output[Dataset]): Interim data\n        all_features (Output[Artifact]): Raw features artifact\n    \"\"\"\n    import gc\n    import json\n    import logging\n    import os\n    import re\n\n    import pandas as pd\n\n    logging.basicConfig(level=logging.INFO)\n    final_df = pd.DataFrame()\n    raw_data_path = os.path.join('gcs', 'test_rig_raw_data')\n    units = []\n    for file in os.listdir(raw_data_path):\n        logging.info(f'Reading {file} from {raw_data_path}')\n        try:\n            if file.endswith('.csv') and 'RAW' in file:\n                current_df = pd.read_csv(\n                    os.path.join(raw_data_path, file),\n                    header=0,\n                    index_col=False,\n                )\n            elif (file.endswith('.xlsx')\n                  or file.endswith('.xls')) and 'RAW' in file:\n                current_df = pd.read_excel(\n                    os.path.join(raw_data_path, file),\n                    header=0,\n                    index_col=False,\n                )\n            else:\n                logging.info(f'{file} is not a valid raw data file')\n                continue\n        except:\n            logging.info(f'Cannot read {file}')\n            continue\n        logging.info(f'{file} has been read')\n        try:\n            unit = int(re.split(r'_|-|/', file)[0][4:].lstrip('HYD0'))\n        except ValueError as err:\n            logging.info(f'{err}\\n. Cannot parse unit from {file}')\n            continue\n        units.append(unit)\n        current_df['UNIT'] = unit\n        current_df['TEST'] = int(units.count(unit))\n        final_df = pd.concat((final_df, current_df), ignore_index=True)\n        del current_df\n        gc.collect()\n    try:\n        final_df.sort_values(by=['UNIT', 'TEST'],\n                             inplace=True,\n                             ignore_index=True)\n        logging.info(f'Final dataframe sorted')\n    except:\n        logging.info('Cannot sort dataframe')\n    final_df.to_csv(\n        interim_data.path + '.csv',\n        index=False,\n    )\n    logging.info('Interim dataframe uploaded to the piepline metadata store')\n    final_df.to_csv(\n        os.path.join('gcs', 'test_rig_interim_data', 'interim_data.csv'),\n        index=False,\n    )\n    logging.info('Interim dataframe uploaded to the interim data storage')\n    with open(all_features.path + '.json', 'w') as features_file:\n        json.dump(final_df.columns.to_list(), features_file)\n    logging.info('Interim data features uploaded to the pipeline metadata store')\n    with open(\n            os.path.join('gcs', 'test_rig_features',\n                         'interim_data_features.json'), 'w') as features_file:\n        json.dump(final_df.columns.to_list(), features_file)\n    logging.info('Interim data features uploaded to the featues store')\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef read_raw_data(\n    interim_data: Output[Dataset],\n    raw_features: Output[Artifact],\n) -> None:\n    \"\"\"Read raw data files from the GCS bucket, specified by `bucket_name`. Uploads the combined data frame to the interim data directory in the GCS bucket.\n\n    Args:\n        interim_data (Output[Dataset]): Interim data\n        all_features (Output[Artifact]): Raw features artifact\n    \"\"\"\n    import gc\n    import json\n    import logging\n    import os\n    import re\n\n    import pandas as pd\n\n    logging.basicConfig(level=logging.INFO)\n    final_df = pd.DataFrame()\n    raw_data_path = os.path.join('gcs', 'test_rig_raw_data')\n    units = []\n    for file in os.listdir(raw_data_path):\n        logging.info(f'Reading {file} from {raw_data_path}')\n        try:\n            if file.endswith('.csv') and 'RAW' in file:\n                current_df = pd.read_csv(\n                    os.path.join(raw_data_path, file),\n                    header=0,\n                    index_col=False,\n                )\n            elif (file.endswith('.xlsx')\n                  or file.endswith('.xls')) and 'RAW' in file:\n                current_df = pd.read_excel(\n                    os.path.join(raw_data_path, file),\n                    header=0,\n                    index_col=False,\n                )\n            else:\n                logging.info(f'{file} is not a valid raw data file')\n                continue\n        except:\n            logging.info(f'Cannot read {file}')\n            continue\n        logging.info(f'{file} has been read')\n        try:\n            unit = int(re.split(r'_|-|/', file)[0][4:].lstrip('HYD0'))\n        except ValueError as err:\n            logging.info(f'{err}\\n. Cannot parse unit from {file}')\n            continue\n        units.append(unit)\n        current_df['UNIT'] = unit\n        current_df['TEST'] = int(units.count(unit))\n        final_df = pd.concat((final_df, current_df), ignore_index=True)\n        del current_df\n        gc.collect()\n    try:\n        final_df.sort_values(by=['UNIT', 'TEST'],\n                             inplace=True,\n                             ignore_index=True)\n        logging.info(f'Final dataframe sorted')\n    except:\n        logging.info('Cannot sort dataframe')\n    final_df.to_csv(\n        interim_data.path + '.csv',\n        index=False,\n    )\n    logging.info('Interim dataframe uploaded to the piepline metadata store')\n    final_df.to_csv(\n        os.path.join('gcs', 'test_rig_interim_data', 'interim_data.csv'),\n        index=False,\n    )\n    logging.info('Interim dataframe uploaded to the interim data storage')\n    with open(raw_features.path + '.json', 'w') as features_file:\n        json.dump(final_df.columns.to_list(), features_file)\n    logging.info('Raw features uploaded to the pipeline metadata store')\n    with open(\n            os.path.join('gcs', 'test_rig_features',\n                         'raw_features.json'), 'w') as features_file:\n        json.dump(final_df.columns.to_list(), features_file)\n    logging.info('Raw features uploaded to the featues store')\n\n"
             ],
             "image": "python:3.10-slim"
           }
@@ -850,8 +856,8 @@
                 "count": "2",
                 "type": "NVIDIA_TESLA_T4"
               },
-              "cpuLimit": 8.0,
-              "memoryLimit": 32.0
+              "cpuLimit": 4.0,
+              "memoryLimit": 16.0
             }
           }
         },
@@ -930,7 +936,7 @@
                     "producerTask": "read-raw-data"
                   }
                 },
-                "raw_features": {
+                "interim_features": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "artifact",
                     "producerTask": "importer"
@@ -947,7 +953,7 @@
               "name": "comp-for-loop-1"
             },
             "dependentTasks": [
-              "import-final-features",
+              "import-processed-features",
               "split-data"
             ],
             "inputs": {
@@ -972,10 +978,10 @@
                 "pipelineparam--epochs": {
                   "componentInputParameter": "epochs"
                 },
-                "pipelineparam--import-final-features-Output": {
+                "pipelineparam--import-processed-features-Output": {
                   "taskOutputParameter": {
                     "outputParameterKey": "Output",
-                    "producerTask": "import-final-features"
+                    "producerTask": "import-processed-features"
                   }
                 },
                 "pipelineparam--learning_rate": {
@@ -993,24 +999,24 @@
               }
             },
             "parameterIterator": {
-              "itemInput": "pipelineparam--import-final-features-Output-loop-item",
+              "itemInput": "pipelineparam--import-processed-features-Output-loop-item",
               "items": {
-                "inputParameter": "pipelineparam--import-final-features-Output"
+                "inputParameter": "pipelineparam--import-processed-features-Output"
               }
             },
             "taskInfo": {
               "name": "for-loop-1"
             }
           },
-          "import-final-features": {
+          "import-processed-features": {
             "cachingOptions": {
               "enableCache": true
             },
             "componentRef": {
-              "name": "comp-import-final-features"
+              "name": "comp-import-processed-features"
             },
             "taskInfo": {
-              "name": "import-final-features"
+              "name": "import-processed-features"
             }
           },
           "importer": {
@@ -1025,14 +1031,14 @@
                 "uri": {
                   "runtimeValue": {
                     "constantValue": {
-                      "stringValue": "gs://test_rig_features/raw_features.json"
+                      "stringValue": "gs://test_rig_features/interim_features.json"
                     }
                   }
                 }
               }
             },
             "taskInfo": {
-              "name": "importer"
+              "name": "import interim features"
             }
           },
           "read-raw-data": {

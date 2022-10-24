@@ -33,7 +33,7 @@ TRAIN_CPU_IMAGE = f'{REGION.split("-")[0]}-docker.pkg.dev/vertex-ai/training/{TR
 TRAIN_GPU_IMAGE = f'{REGION.split("-")[0]}-docker.pkg.dev/vertex-ai/training/{TRAIN_GPU_PREFIX}:latest'
 
 MACHINE_TYPE = 'n1-standard'
-VCPU = '8'
+VCPU = '4'
 TRAIN_COMPUTE = MACHINE_TYPE + '-' + VCPU
-MEMORY_LIMIT = '32G'
+MEMORY_LIMIT = '16G'
 SLEEP_TIME = 1.05
