@@ -94,7 +94,7 @@
                 },
                 "parameters": {
                   "feature": {
-                    "componentInputParameter": "pipelineparam--import-processed-features-Output-loop-item"
+                    "componentInputParameter": "pipelineparam--import-forecast-features-Output-loop-item"
                   }
                 }
               },
@@ -129,7 +129,7 @@
             "pipelineparam--compare-models-Output": {
               "type": "STRING"
             },
-            "pipelineparam--import-processed-features-Output-loop-item": {
+            "pipelineparam--import-forecast-features-Output-loop-item": {
               "type": "STRING"
             }
           }
@@ -296,8 +296,8 @@
                       "producerTask": "compare-models"
                     }
                   },
-                  "pipelineparam--import-processed-features-Output-loop-item": {
-                    "componentInputParameter": "pipelineparam--import-processed-features-Output-loop-item"
+                  "pipelineparam--import-forecast-features-Output-loop-item": {
+                    "componentInputParameter": "pipelineparam--import-forecast-features-Output-loop-item"
                   }
                 }
               },
@@ -341,7 +341,7 @@
                     "componentInputParameter": "pipelineparam--batch_size"
                   },
                   "feature": {
-                    "componentInputParameter": "pipelineparam--import-processed-features-Output-loop-item"
+                    "componentInputParameter": "pipelineparam--import-forecast-features-Output-loop-item"
                   },
                   "lookback": {
                     "componentInputParameter": "pipelineparam--lookback"
@@ -362,7 +362,7 @@
               "inputs": {
                 "parameters": {
                   "feature": {
-                    "componentInputParameter": "pipelineparam--import-processed-features-Output-loop-item"
+                    "componentInputParameter": "pipelineparam--import-forecast-features-Output-loop-item"
                   }
                 }
               },
@@ -391,7 +391,7 @@
                     "componentInputParameter": "pipelineparam--epochs"
                   },
                   "feature": {
-                    "componentInputParameter": "pipelineparam--import-processed-features-Output-loop-item"
+                    "componentInputParameter": "pipelineparam--import-forecast-features-Output-loop-item"
                   },
                   "learning_rate": {
                     "componentInputParameter": "pipelineparam--learning_rate"
@@ -435,10 +435,10 @@
             "pipelineparam--epochs": {
               "type": "INT"
             },
-            "pipelineparam--import-processed-features-Output": {
+            "pipelineparam--import-forecast-features-Output": {
               "type": "STRING"
             },
-            "pipelineparam--import-processed-features-Output-loop-item": {
+            "pipelineparam--import-forecast-features-Output-loop-item": {
               "type": "STRING"
             },
             "pipelineparam--learning_rate": {
@@ -498,8 +498,8 @@
           }
         }
       },
-      "comp-import-processed-features": {
-        "executorLabel": "exec-import-processed-features",
+      "comp-import-forecast-features": {
+        "executorLabel": "exec-import-forecast-features",
         "outputDefinitions": {
           "parameters": {
             "Output": {
@@ -760,13 +760,13 @@
             "image": "python:3.10-slim"
           }
         },
-        "exec-import-processed-features": {
+        "exec-import-forecast-features": {
           "container": {
             "args": [
               "--executor_input",
               "{{$}}",
               "--function_to_execute",
-              "import_processed_features"
+              "import_forecast_features"
             ],
             "command": [
               "sh",
@@ -775,7 +775,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef import_processed_features() -> str:\n    import json\n    import os\n    with open(os.path.join('gcs', 'test_rig_features', 'processed_features.json'),\n              'r') as final_features_file:\n        processed_features = json.loads(final_features_file.read())\n    return json.dumps(processed_features)\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef import_forecast_features() -> str:\n    import json\n    import os\n    with open(os.path.join('gcs', 'test_rig_features', 'forecast_features.json'),\n              'r') as final_features_file:\n        forecast_features = json.loads(final_features_file.read())\n    return json.dumps(forecast_features)\n\n"
             ],
             "image": "python:3.10-slim"
           }
@@ -953,7 +953,7 @@
               "name": "comp-for-loop-1"
             },
             "dependentTasks": [
-              "import-processed-features",
+              "import-forecast-features",
               "split-data"
             ],
             "inputs": {
@@ -978,10 +978,10 @@
                 "pipelineparam--epochs": {
                   "componentInputParameter": "epochs"
                 },
-                "pipelineparam--import-processed-features-Output": {
+                "pipelineparam--import-forecast-features-Output": {
                   "taskOutputParameter": {
                     "outputParameterKey": "Output",
-                    "producerTask": "import-processed-features"
+                    "producerTask": "import-forecast-features"
                   }
                 },
                 "pipelineparam--learning_rate": {
@@ -999,24 +999,24 @@
               }
             },
             "parameterIterator": {
-              "itemInput": "pipelineparam--import-processed-features-Output-loop-item",
+              "itemInput": "pipelineparam--import-forecast-features-Output-loop-item",
               "items": {
-                "inputParameter": "pipelineparam--import-processed-features-Output"
+                "inputParameter": "pipelineparam--import-forecast-features-Output"
               }
             },
             "taskInfo": {
               "name": "for-loop-1"
             }
           },
-          "import-processed-features": {
+          "import-forecast-features": {
             "cachingOptions": {
               "enableCache": true
             },
             "componentRef": {
-              "name": "comp-import-processed-features"
+              "name": "comp-import-forecast-features"
             },
             "taskInfo": {
-              "name": "import-processed-features"
+              "name": "import-forecast-features"
             }
           },
           "importer": {
