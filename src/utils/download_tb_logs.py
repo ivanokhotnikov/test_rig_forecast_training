@@ -6,7 +6,7 @@ from constants import FEATURES_BUCKET, PIPELINES_BUCKET_URI
 def download_tb_logs():
     from json import loads
 
-    features_blob = FEATURES_BUCKET.get_blob('final_features.json')
+    features_blob = FEATURES_BUCKET.get_blob('forecast_features.json')
     features = loads(features_blob.download_as_text())
 
     for feature in features:
