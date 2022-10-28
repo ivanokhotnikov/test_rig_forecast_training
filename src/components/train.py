@@ -102,6 +102,7 @@ def train(
                                          'gcs',
                                          'test_rig_pipelines',
                                          'tensorboards',
+                                         TIMESTAMP,
                                          feature,
                                      ),
                                      histogram_freq=1,

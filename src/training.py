@@ -98,9 +98,9 @@ if __name__ == '__main__':
             'lookback': 120,
             'lstm_units': 5,
             'learning_rate': 0.01,
-            'epochs': 150,
+            'epochs': 100,
             'batch_size': 256,
-            'patience': 15,
+            'patience': 10,
         },
     )
     job.submit()
