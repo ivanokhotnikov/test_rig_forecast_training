@@ -71,8 +71,8 @@ def train(
             lstm_units,
             input_shape=(x_train.shape[1], x_train.shape[2]),
             return_sequences=False,
-            dropout=0.2,
-            recurrent_dropout=0.2,
+            dropout=0.1,
+            recurrent_dropout=0.1,
         ))
     forecaster.add(keras.layers.Dense(1))
     forecaster.compile(
