@@ -67,9 +67,13 @@ def train(
     y_train = np.stack(y_train)
     forecaster = keras.models.Sequential(name=f'{feature}_forecaster')
     forecaster.add(
-        keras.layers.LSTM(lstm_units,
-                          input_shape=(x_train.shape[1], x_train.shape[2]),
-                          return_sequences=False))
+        keras.layers.LSTM(
+            lstm_units,
+            input_shape=(x_train.shape[1], x_train.shape[2]),
+            return_sequences=False,
+            dropout=0.2,
+            recurrent_dropout=0.2,
+        ))
     forecaster.add(keras.layers.Dense(1))
     forecaster.compile(
         loss=keras.losses.mean_squared_error,

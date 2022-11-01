@@ -65,7 +65,7 @@ def evaluate(
         project=PROJECT_ID,
         location=REGION,
     )
-    aip.start_run(run='-'.join((EXP_NAME, TIMESTAMP)))
+    aip.start_run(run=TIMESTAMP)
     test_df = pd.read_csv(test_data.path + '.csv', index_col=False)
     test_data = test_df[feature].values.reshape(-1, 1)
     scaler = joblib.load(scaler_model.path + '.joblib')
