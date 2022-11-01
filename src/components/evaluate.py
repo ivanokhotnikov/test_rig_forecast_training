@@ -13,7 +13,11 @@ from kfp.v2.dsl import Dataset, Input, Metrics, Model, Output, component
 def evaluate(
     feature: str,
     lookback: int,
+    lstm_units: int,
+    learning_rate: float,
+    epochs: int,
     batch_size: int,
+    patience: int,
     test_data: Input[Dataset],
     scaler_model: Input[Model],
     keras_model: Input[Model],
@@ -22,9 +26,13 @@ def evaluate(
     """Evaluates the trained keras model, saves the evaludation metrics to the metadata store
 
     Args:
-        feature (str): Feature strin to train on
+        feature (str): Feature string to train on
         lookback (int): Length of the lookback window
+        lstm_units (int): Number of the LSTM units in the RNN
+        learning_rate (float): Initial learning rate
+        epochs (int): Number of epochs to train
         batch_size (int): Batch size
+        patience (int): Number of patient epochs before the callbacks activate
         test_data (Input[Dataset]): Train dataset
         scaler_model (Input[Model]): Scaler model
         keras_model (Input[Model]): Keras model
@@ -44,7 +52,14 @@ def evaluate(
     EXP_NAME = feature.lower().replace('_', '-')
     TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')
     EVAL_TIMESTAMP = datetime.now().strftime('%H:%M:%S %a %d %b %Y')
-
+    HPARAMS = {
+        'lookback': lookback,
+        'lstm_units': lstm_units,
+        'learning_rate': learning_rate,
+        'epochs': epochs,
+        'batch_size': batch_size,
+        'patience': patience,
+    }
     aip.init(
         experiment=EXP_NAME,
         project=PROJECT_ID,
@@ -73,5 +88,7 @@ def evaluate(
     for k, v in results.items():
         eval_metrics.log_metric(k, v)
         aip.log_metrics({k: v})
+    for k, v in HPARAMS.items():
+        aip.log_params({k: v})
     eval_metrics.metadata['feature'] = feature
     aip.end_run()

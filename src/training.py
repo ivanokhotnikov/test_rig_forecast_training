@@ -54,7 +54,11 @@ def training_pipeline(
         evaluate_task = (evaluate(
             feature=feature,
             lookback=lookback,
+            lstm_units=lstm_units,
+            learning_rate=learning_rate,
+            epochs=epochs,
             batch_size=batch_size,
+            patience=patience,
             test_data=split_data_task.outputs['test_data'],
             scaler_model=train_task.outputs['scaler_model'],
             keras_model=train_task.outputs['keras_model'],
@@ -98,9 +102,9 @@ if __name__ == '__main__':
             'lookback': 120,
             'lstm_units': 5,
             'learning_rate': 0.01,
-            'epochs': 100,
+            'epochs': 150,
             'batch_size': 256,
-            'patience': 10,
+            'patience': 15,
         },
     )
     job.submit()
