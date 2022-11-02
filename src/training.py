@@ -1,3 +1,4 @@
+import argparse
 import os
 from datetime import datetime
 
@@ -83,28 +84,42 @@ def training_pipeline(
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dry_run', action='store_true')
+    parser.add_argument('--compile_only', action='store_true')
+    args = parser.parse_args()
+    params = {
+        'train_data_size': 0.8,
+        'lookback': 120,
+        'lstm_units': 1,
+        'learning_rate': 1,
+        'epochs': 4,
+        'batch_size': 256,
+        'patience': 30
+    } if args.dry_run else {
+        'train_data_size': 0.8,
+        'lookback': 120,
+        'lstm_units': 5,
+        'learning_rate': 0.01,
+        'epochs': 200,
+        'batch_size': 256,
+        'patience': 30
+    }
     compiler.Compiler().compile(
         pipeline_func=training_pipeline,
         package_path=os.path.join('configs', 'training_pipeline.json'),
     )
-    aip.init(
-        project=PROJECT_ID,
-        location=REGION,
-        staging_bucket=PIPELINES_BUCKET_URI,
-    )
-    job = aip.PipelineJob(
-        enable_caching=True,
-        display_name='train_' + datetime.now().strftime('%Y%m%d%H%M%S'),
-        pipeline_root=PIPELINES_BUCKET_URI,
-        template_path=os.path.join('configs', 'training_pipeline.json'),
-        parameter_values={
-            'train_data_size': 0.8,
-            'lookback': 120,
-            'lstm_units': 5,
-            'learning_rate': 0.01,
-            'epochs': 200,
-            'batch_size': 256,
-            'patience': 30,
-        },
-    )
-    job.submit()
+    if not args.compile_only:
+        aip.init(
+            project=PROJECT_ID,
+            location=REGION,
+            staging_bucket=PIPELINES_BUCKET_URI,
+        )
+        job = aip.PipelineJob(
+            enable_caching=True,
+            display_name='train_' + datetime.now().strftime('%Y%m%d%H%M%S'),
+            pipeline_root=PIPELINES_BUCKET_URI,
+            template_path=os.path.join('configs', 'training_pipeline.json'),
+            parameter_values=params,
+        )
+        job.submit()

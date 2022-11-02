@@ -41,7 +41,6 @@ def train(
     import os
     from datetime import datetime
 
-    import google.cloud.aiplatform as aip
     import joblib
     import numpy as np
     import pandas as pd
@@ -72,7 +71,6 @@ def train(
             input_shape=(x_train.shape[1], x_train.shape[2]),
             return_sequences=False,
             dropout=0.1,
-            recurrent_dropout=0.1,
         ))
     forecaster.add(keras.layers.Dense(1))
     forecaster.compile(
