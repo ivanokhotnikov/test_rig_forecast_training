@@ -117,7 +117,7 @@ if __name__ == '__main__':
         )
         job = aip.PipelineJob(
             enable_caching=True,
-            display_name='train_' + datetime.now().strftime('%Y%m%d%H%M%S'),
+            display_name=datetime.now().strftime('%Y%m%d%H%M%S'),
             pipeline_root=PIPELINES_BUCKET_URI,
             template_path=os.path.join('configs', 'training_pipeline.json'),
             parameter_values=params,

@@ -1,0 +1,12 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build container image"
+    args: ["build", "-f","training.dockerfile","-t", "gcr.io/test-rig-349313/forecasting-training", "."]
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push container image to container registry"
+    args: ["push", "gcr.io/test-rig-349313/forecasting-training"]
+options:
+  machineType: 'E2_HIGHCPU_8'
+images:
+  - gcr.io/test-rig-349313/forecasting-training
+timeout: 3600s
