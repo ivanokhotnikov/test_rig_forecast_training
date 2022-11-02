@@ -97,13 +97,13 @@ if __name__ == '__main__':
         'batch_size': 256,
         'patience': 30
     } if args.dry_run else {
-        'train_data_size': 0.8,
+        'train_data_size': 0.75,
         'lookback': 120,
-        'lstm_units': 10,
+        'lstm_units': 20,
         'learning_rate': 0.01,
-        'epochs': 200,
+        'epochs': 220,
         'batch_size': 256,
-        'patience': 20
+        'patience': 25
     }
     compiler.Compiler().compile(
         pipeline_func=training_pipeline,

@@ -1,9 +1,13 @@
-from kfp.v2.dsl import Input, Model, Metrics, component
+from kfp.v2.dsl import Input, Metrics, Model, component
 
 
 @component(
     base_image='tensorflow/tensorflow:latest',
-    packages_to_install=['scikit-learn', 'google-cloud-aiplatform'],
+    packages_to_install=[
+        'scikit-learn',
+        'google-cloud-aiplatform',
+        'protobuf==3.13.0',
+    ],
 )
 def upload_model_to_registry(
     feature: str,
@@ -11,16 +15,14 @@ def upload_model_to_registry(
     keras_model: Input[Model],
     metrics: Input[Metrics],
 ) -> None:
-    import os
     import json
-    import joblib
-    from datetime import datetime
+    import os
 
-    from tensorflow import keras
     import google.cloud.aiplatform as aip
+    import joblib
+    from tensorflow import keras
     PROJECT_ID = 'test-rig-349313'
     REGION = 'europe-west2'
-    TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')
     DEPLOY_IMAGE = 'europe-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-10'
 
     scaler = joblib.load(scaler_model.path + '.joblib')
