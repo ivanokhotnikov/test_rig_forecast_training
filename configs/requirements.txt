@@ -6,5 +6,3 @@ kfp
 google-cloud-aiplatform
 google-cloud-pipeline-components
 openpyxl
-yapf
-ipykernel
