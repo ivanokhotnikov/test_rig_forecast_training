@@ -16,7 +16,15 @@ steps:
     args: ["push", "gcr.io/$PROJECT_ID/forecasting-training"]
     id: "push container image to container registry"
   - name: "gcr.io/cloud-builders/docker"
-    args: ["run", "gcr.io/$PROJECT_ID/forecasting-training"]
+    args:
+      [
+        "run",
+        "gcr.io/$PROJECT_ID/forecasting-training",
+        "-e",
+        "GOOGLE_APPLICATION_CREDENTIALS=/tmp/keys/key.json",
+        "-v",
+        "$GOOGLE_APPLICATION_CREDENTIALS:/tmp/keys/key.json:ro",
+      ]
     id: "run container"
 substitutions:
   _HOME: $HOME
