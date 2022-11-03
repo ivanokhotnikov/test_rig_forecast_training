@@ -16,7 +16,15 @@ steps:
     args: ["push", "gcr.io/$PROJECT_ID/forecasting-training"]
     id: "push container image to container registry"
   - name: "gcr.io/cloud-builders/docker"
-    args: ["run", "gcr.io/$PROJECT_ID/forecasting-training"]
+    args:
+      [
+        "run",
+        "-e",
+        "GOOGLE_APPLICATION_CREDENTIALS=/.config/gcloud/application_default_credentials.json",
+        "-v",
+        "~/.config/gcloud:/.config/gcloud:ro",
+        "gcr.io/$PROJECT_ID/forecasting-training",
+      ]
     id: "run container"
 timeout: 3600s
 images:
