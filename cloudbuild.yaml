@@ -1,26 +1,28 @@
 steps:
   - name: "gcr.io/cloud-builders/docker"
-    id: "build container image"
     args:
       [
         "build",
         "-f",
         "training.dockerfile",
         "-t",
-        "gcr.io/test-rig-349313/forecasting-training",
+        "gcr.io/$PROJECT_ID/forecasting-training",
         "--network",
         "cloudbuild",
         ".",
       ]
+    id: "build container image"
   - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/forecasting-training"]
     id: "push container image to container registry"
-    args: ["push", "gcr.io/test-rig-349313/forecasting-training"]
   - name: "gcr.io/cloud-builders/docker"
+    args: ["run", "gcr.io/$PROJECT_ID/forecasting-training"]
     id: "run container"
-    args: ["run", "gcr.io/test-rig-349313/forecasting-training"]
+substitutions:
+  _HOME: $HOME
+timeout: 3600s
+images:
+  - gcr.io/$PROJECT_ID/forecasting-training
 options:
   machineType: "E2_HIGHCPU_8"
   logging: CLOUD_LOGGING_ONLY
-images:
-  - gcr.io/test-rig-349313/forecasting-training
-timeout: 3600s
