@@ -15,14 +15,16 @@ steps:
   - name: "gcr.io/cloud-builders/docker"
     args: ["push", "gcr.io/$PROJECT_ID/forecasting-training"]
     id: "push container image to container registry"
+  - name: "gcr.io/cloud-builders/gsutil"
+    args: ["cp", "gs://gcloud_keys/key.json", "/workspace/gcloud_keys/key.json"]
   - name: "gcr.io/cloud-builders/docker"
     args:
       [
         "run",
         "-e",
-        "GOOGLE_APPLICATION_CREDENTIALS=/.config/gcloud/application_default_credentials.json",
+        "GOOGLE_APPLICATION_CREDENTIALS=/gcloud_keys/key.json",
         "-v",
-        "~/.config/gcloud:/.config/gcloud:ro",
+        "/workspace/gcloud_keys:/gcloud_keys:ro",
         "gcr.io/$PROJECT_ID/forecasting-training",
       ]
     id: "run container"
