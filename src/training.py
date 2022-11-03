@@ -107,7 +107,7 @@ if __name__ == '__main__':
     }
     compiler.Compiler().compile(
         pipeline_func=training_pipeline,
-        package_path=os.path.join('configs', 'training_pipeline.json'),
+        package_path='training_pipeline.json',
     )
     if not args.compile_only:
         aip.init(
@@ -119,7 +119,7 @@ if __name__ == '__main__':
             enable_caching=True,
             display_name=datetime.now().strftime('%Y%m%d%H%M%S'),
             pipeline_root=PIPELINES_BUCKET_URI,
-            template_path=os.path.join('configs', 'training_pipeline.json'),
+            template_path='training_pipeline.json',
             parameter_values=params,
         )
         job.submit()
