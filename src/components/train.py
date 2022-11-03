@@ -70,7 +70,6 @@ def train(
             lstm_units,
             input_shape=(x_train.shape[1], x_train.shape[2]),
             return_sequences=False,
-            stateful=True,
         ))
     forecaster.add(keras.layers.Dense(1))
     forecaster.compile(
