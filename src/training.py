@@ -77,6 +77,13 @@ def training_pipeline(
         with Condition(compare_task.output == 'true', name='chall better'):
             upload_model_to_registry(
                 feature=feature,
+                train_data_size=train_data_size,
+                lookback=lookback,
+                lstm_units=lstm_units,
+                learning_rate=learning_rate,
+                epochs=epochs,
+                batch_size=batch_size,
+                patience=patience,
                 scaler_model=train_task.outputs['scaler_model'],
                 keras_model=train_task.outputs['keras_model'],
                 metrics=evaluate_task.outputs['eval_metrics'],
@@ -97,13 +104,13 @@ if __name__ == '__main__':
         'batch_size': 256,
         'patience': 30
     } if args.dry_run else {
-        'train_data_size': 0.75,
+        'train_data_size': 0.7,
         'lookback': 120,
-        'lstm_units': 20,
+        'lstm_units': 50,
         'learning_rate': 0.01,
-        'epochs': 220,
+        'epochs': 250,
         'batch_size': 256,
-        'patience': 25
+        'patience': 35
     }
     compiler.Compiler().compile(
         pipeline_func=training_pipeline,

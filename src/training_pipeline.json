@@ -1,0 +1,1254 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-build-features": {
+        "executorLabel": "exec-build-features",
+        "inputDefinitions": {
+          "artifacts": {
+            "interim_data": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "interim_features": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "processed_data": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "processed_features": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-compare-models": {
+        "executorLabel": "exec-compare-models",
+        "inputDefinitions": {
+          "artifacts": {
+            "challenger_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "champion_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "absolute_difference": {
+              "type": "DOUBLE"
+            },
+            "evaluation_metric": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-condition-chall-better-2": {
+        "dag": {
+          "tasks": {
+            "upload-model-to-registry": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-upload-model-to-registry"
+              },
+              "inputs": {
+                "artifacts": {
+                  "keras_model": {
+                    "componentInputArtifact": "pipelineparam--train-keras_model"
+                  },
+                  "metrics": {
+                    "componentInputArtifact": "pipelineparam--evaluate-eval_metrics"
+                  },
+                  "scaler_model": {
+                    "componentInputArtifact": "pipelineparam--train-scaler_model"
+                  }
+                },
+                "parameters": {
+                  "batch_size": {
+                    "componentInputParameter": "pipelineparam--batch_size"
+                  },
+                  "epochs": {
+                    "componentInputParameter": "pipelineparam--epochs"
+                  },
+                  "feature": {
+                    "componentInputParameter": "pipelineparam--import-forecast-features-Output-loop-item"
+                  },
+                  "learning_rate": {
+                    "componentInputParameter": "pipelineparam--learning_rate"
+                  },
+                  "lookback": {
+                    "componentInputParameter": "pipelineparam--lookback"
+                  },
+                  "lstm_units": {
+                    "componentInputParameter": "pipelineparam--lstm_units"
+                  },
+                  "patience": {
+                    "componentInputParameter": "pipelineparam--patience"
+                  },
+                  "train_data_size": {
+                    "componentInputParameter": "pipelineparam--train_data_size"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "upload-model-to-registry"
+              }
+            }
+          }
+        },
+        "inputDefinitions": {
+          "artifacts": {
+            "pipelineparam--evaluate-eval_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "pipelineparam--train-keras_model": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "pipelineparam--train-scaler_model": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "pipelineparam--batch_size": {
+              "type": "INT"
+            },
+            "pipelineparam--compare-models-Output": {
+              "type": "STRING"
+            },
+            "pipelineparam--epochs": {
+              "type": "INT"
+            },
+            "pipelineparam--import-forecast-features-Output-loop-item": {
+              "type": "STRING"
+            },
+            "pipelineparam--learning_rate": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--lookback": {
+              "type": "INT"
+            },
+            "pipelineparam--lstm_units": {
+              "type": "INT"
+            },
+            "pipelineparam--patience": {
+              "type": "INT"
+            },
+            "pipelineparam--train_data_size": {
+              "type": "DOUBLE"
+            }
+          }
+        }
+      },
+      "comp-evaluate": {
+        "executorLabel": "exec-evaluate",
+        "inputDefinitions": {
+          "artifacts": {
+            "keras_model": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "scaler_model": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "test_data": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "batch_size": {
+              "type": "INT"
+            },
+            "epochs": {
+              "type": "INT"
+            },
+            "feature": {
+              "type": "STRING"
+            },
+            "learning_rate": {
+              "type": "DOUBLE"
+            },
+            "lookback": {
+              "type": "INT"
+            },
+            "lstm_units": {
+              "type": "INT"
+            },
+            "patience": {
+              "type": "INT"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "eval_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-for-loop-1": {
+        "dag": {
+          "outputs": {
+            "artifacts": {
+              "evaluate-eval_metrics": {
+                "artifactSelectors": [
+                  {
+                    "outputArtifactKey": "eval_metrics",
+                    "producerSubtask": "evaluate"
+                  }
+                ]
+              },
+              "import-champion-metrics-champion_metrics": {
+                "artifactSelectors": [
+                  {
+                    "outputArtifactKey": "champion_metrics",
+                    "producerSubtask": "import-champion-metrics"
+                  }
+                ]
+              },
+              "train-train_metrics": {
+                "artifactSelectors": [
+                  {
+                    "outputArtifactKey": "train_metrics",
+                    "producerSubtask": "train"
+                  }
+                ]
+              }
+            }
+          },
+          "tasks": {
+            "compare-models": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-compare-models"
+              },
+              "dependentTasks": [
+                "evaluate",
+                "import-champion-metrics"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "challenger_metrics": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "eval_metrics",
+                      "producerTask": "evaluate"
+                    }
+                  },
+                  "champion_metrics": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "champion_metrics",
+                      "producerTask": "import-champion-metrics"
+                    }
+                  }
+                },
+                "parameters": {
+                  "absolute_difference": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "doubleValue": 0.0
+                      }
+                    }
+                  },
+                  "evaluation_metric": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "root_mean_squared_error"
+                      }
+                    }
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "compare-models"
+              }
+            },
+            "condition-chall better-2": {
+              "componentRef": {
+                "name": "comp-condition-chall-better-2"
+              },
+              "dependentTasks": [
+                "compare-models",
+                "evaluate",
+                "train"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "pipelineparam--evaluate-eval_metrics": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "eval_metrics",
+                      "producerTask": "evaluate"
+                    }
+                  },
+                  "pipelineparam--train-keras_model": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "keras_model",
+                      "producerTask": "train"
+                    }
+                  },
+                  "pipelineparam--train-scaler_model": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "scaler_model",
+                      "producerTask": "train"
+                    }
+                  }
+                },
+                "parameters": {
+                  "pipelineparam--batch_size": {
+                    "componentInputParameter": "pipelineparam--batch_size"
+                  },
+                  "pipelineparam--compare-models-Output": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "Output",
+                      "producerTask": "compare-models"
+                    }
+                  },
+                  "pipelineparam--epochs": {
+                    "componentInputParameter": "pipelineparam--epochs"
+                  },
+                  "pipelineparam--import-forecast-features-Output-loop-item": {
+                    "componentInputParameter": "pipelineparam--import-forecast-features-Output-loop-item"
+                  },
+                  "pipelineparam--learning_rate": {
+                    "componentInputParameter": "pipelineparam--learning_rate"
+                  },
+                  "pipelineparam--lookback": {
+                    "componentInputParameter": "pipelineparam--lookback"
+                  },
+                  "pipelineparam--lstm_units": {
+                    "componentInputParameter": "pipelineparam--lstm_units"
+                  },
+                  "pipelineparam--patience": {
+                    "componentInputParameter": "pipelineparam--patience"
+                  },
+                  "pipelineparam--train_data_size": {
+                    "componentInputParameter": "pipelineparam--train_data_size"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "condition-chall better-2"
+              },
+              "triggerPolicy": {
+                "condition": "inputs.parameters['pipelineparam--compare-models-Output'].string_value == 'true'"
+              }
+            },
+            "evaluate": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-evaluate"
+              },
+              "dependentTasks": [
+                "train"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "keras_model": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "keras_model",
+                      "producerTask": "train"
+                    }
+                  },
+                  "scaler_model": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "scaler_model",
+                      "producerTask": "train"
+                    }
+                  },
+                  "test_data": {
+                    "componentInputArtifact": "pipelineparam--split-data-test_data"
+                  }
+                },
+                "parameters": {
+                  "batch_size": {
+                    "componentInputParameter": "pipelineparam--batch_size"
+                  },
+                  "epochs": {
+                    "componentInputParameter": "pipelineparam--epochs"
+                  },
+                  "feature": {
+                    "componentInputParameter": "pipelineparam--import-forecast-features-Output-loop-item"
+                  },
+                  "learning_rate": {
+                    "componentInputParameter": "pipelineparam--learning_rate"
+                  },
+                  "lookback": {
+                    "componentInputParameter": "pipelineparam--lookback"
+                  },
+                  "lstm_units": {
+                    "componentInputParameter": "pipelineparam--lstm_units"
+                  },
+                  "patience": {
+                    "componentInputParameter": "pipelineparam--patience"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "evaluate"
+              }
+            },
+            "import-champion-metrics": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-import-champion-metrics"
+              },
+              "inputs": {
+                "parameters": {
+                  "feature": {
+                    "componentInputParameter": "pipelineparam--import-forecast-features-Output-loop-item"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "import-champion-metrics"
+              }
+            },
+            "train": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-train"
+              },
+              "inputs": {
+                "artifacts": {
+                  "train_data": {
+                    "componentInputArtifact": "pipelineparam--split-data-train_data"
+                  }
+                },
+                "parameters": {
+                  "batch_size": {
+                    "componentInputParameter": "pipelineparam--batch_size"
+                  },
+                  "epochs": {
+                    "componentInputParameter": "pipelineparam--epochs"
+                  },
+                  "feature": {
+                    "componentInputParameter": "pipelineparam--import-forecast-features-Output-loop-item"
+                  },
+                  "learning_rate": {
+                    "componentInputParameter": "pipelineparam--learning_rate"
+                  },
+                  "lookback": {
+                    "componentInputParameter": "pipelineparam--lookback"
+                  },
+                  "lstm_units": {
+                    "componentInputParameter": "pipelineparam--lstm_units"
+                  },
+                  "patience": {
+                    "componentInputParameter": "pipelineparam--patience"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "train"
+              }
+            }
+          }
+        },
+        "inputDefinitions": {
+          "artifacts": {
+            "pipelineparam--split-data-test_data": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "pipelineparam--split-data-train_data": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "pipelineparam--batch_size": {
+              "type": "INT"
+            },
+            "pipelineparam--epochs": {
+              "type": "INT"
+            },
+            "pipelineparam--import-forecast-features-Output": {
+              "type": "STRING"
+            },
+            "pipelineparam--import-forecast-features-Output-loop-item": {
+              "type": "STRING"
+            },
+            "pipelineparam--learning_rate": {
+              "type": "DOUBLE"
+            },
+            "pipelineparam--lookback": {
+              "type": "INT"
+            },
+            "pipelineparam--lstm_units": {
+              "type": "INT"
+            },
+            "pipelineparam--patience": {
+              "type": "INT"
+            },
+            "pipelineparam--train_data_size": {
+              "type": "DOUBLE"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "evaluate-eval_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "import-champion-metrics-champion_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "train-train_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-import-champion-metrics": {
+        "executorLabel": "exec-import-champion-metrics",
+        "inputDefinitions": {
+          "parameters": {
+            "feature": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "champion_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-import-forecast-features": {
+        "executorLabel": "exec-import-forecast-features",
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-importer": {
+        "executorLabel": "exec-importer",
+        "inputDefinitions": {
+          "parameters": {
+            "uri": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "artifact": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-read-raw-data": {
+        "executorLabel": "exec-read-raw-data",
+        "outputDefinitions": {
+          "artifacts": {
+            "interim_data": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "raw_features": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-split-data": {
+        "executorLabel": "exec-split-data",
+        "inputDefinitions": {
+          "artifacts": {
+            "processed_data": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "train_data_size": {
+              "type": "DOUBLE"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "test_data": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "train_data": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-train": {
+        "executorLabel": "exec-train",
+        "inputDefinitions": {
+          "artifacts": {
+            "train_data": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "batch_size": {
+              "type": "INT"
+            },
+            "epochs": {
+              "type": "INT"
+            },
+            "feature": {
+              "type": "STRING"
+            },
+            "learning_rate": {
+              "type": "DOUBLE"
+            },
+            "lookback": {
+              "type": "INT"
+            },
+            "lstm_units": {
+              "type": "INT"
+            },
+            "patience": {
+              "type": "INT"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "keras_model": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "scaler_model": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "train_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-upload-model-to-registry": {
+        "executorLabel": "exec-upload-model-to-registry",
+        "inputDefinitions": {
+          "artifacts": {
+            "keras_model": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "scaler_model": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "batch_size": {
+              "type": "INT"
+            },
+            "epochs": {
+              "type": "INT"
+            },
+            "feature": {
+              "type": "STRING"
+            },
+            "learning_rate": {
+              "type": "DOUBLE"
+            },
+            "lookback": {
+              "type": "INT"
+            },
+            "lstm_units": {
+              "type": "INT"
+            },
+            "patience": {
+              "type": "INT"
+            },
+            "train_data_size": {
+              "type": "DOUBLE"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-build-features": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "build_features"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'pandas' 'kfp==1.8.14' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef build_features(\n    interim_features: Input[Artifact],\n    interim_data: Input[Dataset],\n    processed_data: Output[Dataset],\n    processed_features: Output[Artifact],\n) -> None:\n    \"\"\"\n    Read the interim data, build features (float down casting, removes NaNs and the step zero data, calculates and adds to the processed data the power and time features), saves the processed data.\n\n    Args:\n        processed_features (Input[Artifact]): Raw features json artifact\n        interim_data (Input[Dataset]): Interim dataset\n        processed_data (Output[Dataset]): Processed dataset\n        processed_features (Output[Artifact]): Processed features\n    \"\"\"\n    import json\n    import logging\n    import math\n    import os\n\n    import pandas as pd\n\n    with open(interim_features.path, 'r') as features_file:\n        interim_features_list = list(json.loads(features_file.read()))\n    no_time_features = [\n        f for f in interim_features_list if f not in ('TIME', ' DATE', 'DATE')\n    ]\n    df = pd.read_csv(\n        interim_data.path + '.csv',\n        usecols=interim_features_list,\n        header=0,\n        index_col=False,\n        low_memory=False,\n    )\n    logging.info(f'Interim dataframe was read')\n    df[no_time_features] = df[no_time_features].apply(pd.to_numeric,\n                                                      errors='coerce',\n                                                      downcast='float')\n    df.dropna(\n        axis=0,\n        inplace=True,\n        subset=no_time_features,\n    )\n    df.drop(columns='DATE', inplace=True, errors='ignore')\n    df.drop(columns=' DATE', inplace=True, errors='ignore')\n    df.drop(columns='DURATION', inplace=True, errors='ignore')\n    logging.info(f'NAs and date columns droped')\n    df = df.drop(df[df['STEP'] == 0].index, axis=0).reset_index(drop=True)\n    logging.info(f'Step zero removed')\n    df['DRIVE_POWER'] = (df['M1 SPEED'] * df['M1 TORQUE'] * math.pi / 30 /\n                         1e3).astype(float)\n    df['LOAD_POWER'] = abs(df['D1 RPM'] * df['D1 TORQUE'] * math.pi / 30 /\n                           1e3).astype(float)\n    df['CHARGE_MECH_POWER'] = (df['M2 RPM'] * df['M2 Torque'] * math.pi / 30 /\n                               1e3).astype(float)\n    df['CHARGE_HYD_POWER'] = (df['CHARGE PT'] * 1e5 * df['CHARGE FLOW'] *\n                              1e-3 / 60 / 1e3).astype(float)\n    df['SERVO_MECH_POWER'] = (df['M3 RPM'] * df['M3 Torque'] * math.pi / 30 /\n                              1e3).astype(float)\n    df['SERVO_HYD_POWER'] = (df['Servo PT'] * 1e5 * df['SERVO FLOW'] * 1e-3 /\n                             60 / 1e3).astype(float)\n    df['SCAVENGE_POWER'] = (df['M5 RPM'] * df['M5 Torque'] * math.pi / 30 /\n                            1e3).astype(float)\n    df['MAIN_COOLER_POWER'] = (df['M6 RPM'] * df['M6 Torque'] * math.pi / 30 /\n                               1e3).astype(float)\n    df['GEARBOX_COOLER_POWER'] = (df['M7 RPM'] * df['M7 Torque'] * math.pi /\n                                  30 / 1e3).astype(float)\n    logging.info(f'Power features added')\n    df['RUNNING_SECONDS'] = (pd.to_timedelta(range(\n        len(df)), unit='s').total_seconds()).astype(int)\n    df['RUNNING_HOURS'] = (df['RUNNING_SECONDS'] / 3600).astype(float)\n    logging.info(f'Time features added')\n    df.columns = df.columns.str.lstrip()\n    df.columns = df.columns.str.replace(' ', '_')\n    df.to_csv(\n        os.path.join('gcs', 'test_rig_processed_data', 'processed_data.csv'),\n        index=False,\n    )\n    logging.info(f'Processed dataframe uploaded to processed data storage')\n    df.to_csv(\n        processed_data.path + '.csv',\n        index=False,\n    )\n    logging.info(f'Processed dataframe uploaded to metadata store')\n    with open(processed_features.path + '.json', 'w') as features_file:\n        json.dump(df.columns.to_list(), features_file)\n    logging.info('Processed features uploaded to the pipeline metadata store')\n    with open(\n            os.path.join('gcs', 'test_rig_features',\n                         'processed_features.json'), 'w') as features_file:\n        json.dump(df.columns.to_list(), features_file)\n    logging.info('Processed features uploaded to the featues store')\n\n"
+            ],
+            "image": "python:3.10-slim"
+          }
+        },
+        "exec-compare-models": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "compare_models"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef compare_models(\n    challenger_metrics: Input[Metrics],\n    champion_metrics: Input[Metrics],\n    evaluation_metric: str = 'root_mean_squared_error',\n    absolute_difference: float = 0.0,\n) -> bool:\n    \"\"\"\n    https://github.com/GoogleCloudPlatform/vertex-pipelines-end-to-end-samples/blob/main/pipelines/kfp_components/evaluation/compare_models.py\n    \"\"\"\n    import json\n    import logging\n\n    logging.basicConfig(level=logging.INFO)\n    with open(champion_metrics.path + '.json') as champ:\n        champ_metrics_dict = json.load(champ)\n    with open(challenger_metrics.path + '.json') as chal:\n        challenger_metrics_dict = json.load(chal)\n    if (evaluation_metric not in champ_metrics_dict.keys()) or (\n            evaluation_metric not in challenger_metrics_dict.keys()):\n        raise ValueError(f'{evaluation_metric} is not present in both metrics')\n    if absolute_difference is None:\n        logging.info(\"Since absolute_difference is None, setting it to 0.\")\n        absolute_difference = 0.0\n    champ_val = champ_metrics_dict[evaluation_metric]\n    logging.info(f'Champion metric = {champ_val:.2e}')\n    chal_val = challenger_metrics_dict[evaluation_metric]\n    logging.info(f'Challenger metric = {chal_val:.2e}')\n    abs_diff = abs(absolute_difference)\n    diff = chal_val - champ_val\n    chal_is_better = (diff <= abs_diff)\n    logging.info(f'Challenger is better = {chal_is_better}')\n    return chal_is_better\n\n"
+            ],
+            "image": "python:3.10-slim"
+          }
+        },
+        "exec-evaluate": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "evaluate"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'pandas' 'scikit-learn' 'google-cloud-aiplatform' 'protobuf==3.13.0' 'kfp==1.8.14' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef evaluate(\n    feature: str,\n    lookback: int,\n    lstm_units: int,\n    learning_rate: float,\n    epochs: int,\n    batch_size: int,\n    patience: int,\n    test_data: Input[Dataset],\n    scaler_model: Input[Model],\n    keras_model: Input[Model],\n    eval_metrics: Output[Metrics],\n) -> None:\n    \"\"\"Evaluates the trained keras model, saves the evaludation metrics to the metadata store\n\n    Args:\n        feature (str): Feature string to train on\n        lookback (int): Length of the lookback window\n        lstm_units (int): Number of the LSTM units in the RNN\n        learning_rate (float): Initial learning rate\n        epochs (int): Number of epochs to train\n        batch_size (int): Batch size\n        patience (int): Number of patient epochs before the callbacks activate\n        test_data (Input[Dataset]): Train dataset\n        scaler_model (Input[Model]): Scaler model\n        keras_model (Input[Model]): Keras model\n        eval_metrics (Output[Metrics]): Metrics\n    \"\"\"\n    import json\n    from datetime import datetime\n\n    import google.cloud.aiplatform as aip\n    import joblib\n    import numpy as np\n    import pandas as pd\n    from tensorflow import keras\n\n    PROJECT_ID = 'test-rig-349313'\n    REGION = 'europe-west2'\n    EXP_NAME = feature.lower().replace('_', '-')\n    TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')\n    EVAL_TIMESTAMP = datetime.now().strftime('%H:%M:%S %a %d %b %Y')\n    HPARAMS = {\n        'lookback': lookback,\n        'lstm_units': lstm_units,\n        'learning_rate': learning_rate,\n        'epochs': epochs,\n        'batch_size': batch_size,\n        'patience': patience,\n    }\n    aip.init(\n        experiment=EXP_NAME,\n        project=PROJECT_ID,\n        location=REGION,\n    )\n    aip.start_run(run=TIMESTAMP)\n    test_df = pd.read_csv(test_data.path + '.csv', index_col=False)\n    test_data = test_df[feature].values.reshape(-1, 1)\n    scaler = joblib.load(scaler_model.path + '.joblib')\n    scaled_test = scaler.transform(test_data)\n    x_test, y_test = [], []\n    for i in range(lookback, len(scaled_test)):\n        x_test.append(scaled_test[i - lookback:i])\n        y_test.append(scaled_test[i])\n    x_test = np.stack(x_test)\n    y_test = np.stack(y_test)\n    forecaster = keras.models.load_model(keras_model.path + '.h5')\n    results = forecaster.evaluate(x_test,\n                                  y_test,\n                                  verbose=1,\n                                  batch_size=batch_size,\n                                  return_dict=True)\n    results['evaluation_timestamp'] = EVAL_TIMESTAMP\n    with open(eval_metrics.path + '.json', 'w') as metrics_file:\n        metrics_file.write(json.dumps(results))\n    for k, v in results.items():\n        eval_metrics.log_metric(k, v)\n        aip.log_metrics({k: v})\n    for k, v in HPARAMS.items():\n        aip.log_params({k: v})\n    eval_metrics.metadata['feature'] = feature\n    aip.end_run()\n\n"
+            ],
+            "image": "tensorflow/tensorflow:latest-gpu",
+            "resources": {
+              "accelerator": {
+                "count": "2",
+                "type": "NVIDIA_TESLA_T4"
+              },
+              "cpuLimit": 4.0,
+              "memoryLimit": 16.0
+            }
+          }
+        },
+        "exec-import-champion-metrics": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "import_champion_metrics"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef import_champion_metrics(\n    feature: str,\n    champion_metrics: Output[Metrics],\n):\n    import json\n    import os\n\n    with open(os.path.join('gcs', 'models_forecasting', f'{feature}.json'),\n              'r') as registry_metrics_file:\n        champion_metrics_dict = json.load(registry_metrics_file)\n    with open(champion_metrics.path + '.json', 'w') as pipeline_metrics_file:\n        json.dump(champion_metrics_dict, pipeline_metrics_file)\n    champion_metrics.metadata['feature'] = feature\n\n"
+            ],
+            "image": "python:3.10-slim"
+          }
+        },
+        "exec-import-forecast-features": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "import_forecast_features"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef import_forecast_features() -> str:\n    import json\n    import os\n    with open(os.path.join('gcs', 'test_rig_features', 'forecast_features.json'),\n              'r') as final_features_file:\n        forecast_features = json.loads(final_features_file.read())\n    return json.dumps(forecast_features)\n\n"
+            ],
+            "image": "python:3.10-slim"
+          }
+        },
+        "exec-importer": {
+          "importer": {
+            "artifactUri": {
+              "constantValue": {
+                "stringValue": "gs://test_rig_features/interim_features.json"
+              }
+            },
+            "typeSchema": {
+              "schemaTitle": "system.Artifact",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        },
+        "exec-read-raw-data": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "read_raw_data"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'pandas' 'openpyxl' 'kfp==1.8.14' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef read_raw_data(\n    interim_data: Output[Dataset],\n    raw_features: Output[Artifact],\n) -> None:\n    \"\"\"Read raw data files from the GCS bucket, specified by `bucket_name`. Uploads the combined data frame to the interim data directory in the GCS bucket.\n\n    Args:\n        interim_data (Output[Dataset]): Interim data\n        all_features (Output[Artifact]): Raw features artifact\n    \"\"\"\n    import gc\n    import json\n    import logging\n    import os\n    import re\n\n    import pandas as pd\n\n    logging.basicConfig(level=logging.INFO)\n    final_df = pd.DataFrame()\n    raw_data_path = os.path.join('gcs', 'test_rig_raw_data')\n    units = []\n    for file in os.listdir(raw_data_path):\n        logging.info(f'Reading {file} from {raw_data_path}')\n        try:\n            if file.endswith('.csv') and 'RAW' in file:\n                current_df = pd.read_csv(\n                    os.path.join(raw_data_path, file),\n                    header=0,\n                    index_col=False,\n                )\n            elif (file.endswith('.xlsx')\n                  or file.endswith('.xls')) and 'RAW' in file:\n                current_df = pd.read_excel(\n                    os.path.join(raw_data_path, file),\n                    header=0,\n                    index_col=False,\n                )\n            else:\n                logging.info(f'{file} is not a valid raw data file')\n                continue\n        except:\n            logging.info(f'Cannot read {file}')\n            continue\n        logging.info(f'{file} has been read')\n        try:\n            unit = int(re.split(r'_|-|/', file)[0][4:].lstrip('HYD0'))\n        except ValueError as err:\n            logging.info(f'{err}\\n. Cannot parse unit from {file}')\n            continue\n        units.append(unit)\n        current_df['UNIT'] = unit\n        current_df['TEST'] = int(units.count(unit))\n        final_df = pd.concat((final_df, current_df), ignore_index=True)\n        del current_df\n        gc.collect()\n    try:\n        final_df.sort_values(by=['UNIT', 'TEST'],\n                             inplace=True,\n                             ignore_index=True)\n        logging.info(f'Final dataframe sorted')\n    except:\n        logging.info('Cannot sort dataframe')\n    final_df.to_csv(\n        interim_data.path + '.csv',\n        index=False,\n    )\n    logging.info('Interim dataframe uploaded to the piepline metadata store')\n    final_df.to_csv(\n        os.path.join('gcs', 'test_rig_interim_data', 'interim_data.csv'),\n        index=False,\n    )\n    logging.info('Interim dataframe uploaded to the interim data storage')\n    with open(raw_features.path + '.json', 'w') as features_file:\n        json.dump(final_df.columns.to_list(), features_file)\n    logging.info('Raw features uploaded to the pipeline metadata store')\n    with open(\n            os.path.join('gcs', 'test_rig_features',\n                         'raw_features.json'), 'w') as features_file:\n        json.dump(final_df.columns.to_list(), features_file)\n    logging.info('Raw features uploaded to the featues store')\n\n"
+            ],
+            "image": "python:3.10-slim"
+          }
+        },
+        "exec-split-data": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "split_data"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'pandas' 'kfp==1.8.14' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef split_data(\n    train_data_size: float,\n    processed_data: Input[Dataset],\n    train_data: Output[Dataset],\n    test_data: Output[Dataset],\n) -> None:\n    \"\"\"\n    Split processed data into train and test data.\n\n    Args:\n        train_data_size (float): Train-test split\n        processed_data (Input[Dataset]): Processed dataset\n        train_data (Output[Dataset]): Train dataset\n        test_data (Output[Dataset]): Test dataset\n    \"\"\"\n    import pandas as pd\n\n    processed_df = pd.read_csv(\n        processed_data.path + '.csv',\n        index_col=False,\n        header=0,\n    )\n    train_df = processed_df.loc[:int(len(processed_df) * train_data_size)]\n    test_df = processed_df.loc[int(len(processed_df) * train_data_size):]\n    train_df.to_csv(\n        train_data.path + '.csv',\n        index=False,\n    )\n    test_df.to_csv(\n        test_data.path + '.csv',\n        index=False,\n    )\n\n"
+            ],
+            "image": "python:3.10-slim"
+          }
+        },
+        "exec-train": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "train"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'pandas' 'scikit-learn' 'google-cloud-aiplatform' 'protobuf==3.13.0' 'kfp==1.8.14' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef train(\n    feature: str,\n    lookback: int,\n    lstm_units: int,\n    learning_rate: float,\n    epochs: int,\n    batch_size: int,\n    patience: int,\n    train_data: Input[Dataset],\n    scaler_model: Output[Model],\n    keras_model: Output[Model],\n    train_metrics: Output[Metrics],\n) -> None:\n    \"\"\"Instantiates, trains the RNN model on the train dataset. Saves the trained scaler and the keras model to the metadata store, saves the evaluation metrics file as well.\n\n    Args:\n        feature (str): Feature string to train on\n        lookback (int): Length of the lookback window\n        lstm_units (int): Number of the LSTM units in the RNN\n        learning_rate (float): Initial learning rate\n        epochs (int): Number of epochs to train\n        batch_size (int): Batch size\n        patience (int): Number of patient epochs before the callbacks activate\n        train_data (Input[Dataset]): Train dataset\n        scaler_model (Output[Model]): Scaler model\n        keras_model (Output[Model]): Keras model\n        train_metrics (Output[Metrics]): Metrics\n    \"\"\"\n    import os\n    from datetime import datetime\n\n    import joblib\n    import numpy as np\n    import pandas as pd\n    from sklearn.preprocessing import MinMaxScaler\n    from tensorflow import keras\n\n    TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')\n\n    train_df = pd.read_csv(train_data.path + '.csv', index_col=False)\n    train_data = train_df[feature].values.reshape(-1, 1)\n    scaler = MinMaxScaler(feature_range=(0, 1))\n    scaled_train_data = scaler.fit_transform(train_data)\n    scaler_model.metadata['feature'] = feature\n    joblib.dump(\n        scaler,\n        scaler_model.path + '.joblib',\n    )\n    x_train, y_train = [], []\n    for i in range(lookback, len(scaled_train_data)):\n        x_train.append(scaled_train_data[i - lookback:i])\n        y_train.append(scaled_train_data[i])\n    x_train = np.stack(x_train)\n    y_train = np.stack(y_train)\n    forecaster = keras.models.Sequential(name=f'{feature}_forecaster')\n    forecaster.add(\n        keras.layers.LSTM(\n            lstm_units,\n            input_shape=(x_train.shape[1], x_train.shape[2]),\n            return_sequences=False,\n        ))\n    forecaster.add(keras.layers.Dense(1))\n    forecaster.compile(\n        loss=keras.losses.mean_squared_error,\n        metrics=keras.metrics.RootMeanSquaredError(),\n        optimizer=keras.optimizers.RMSprop(learning_rate=learning_rate))\n    history = forecaster.fit(x_train,\n                             y_train,\n                             shuffle=False,\n                             epochs=epochs,\n                             batch_size=batch_size,\n                             validation_split=0.2,\n                             verbose=1,\n                             callbacks=[\n                                 keras.callbacks.EarlyStopping(\n                                     patience=patience,\n                                     monitor='val_loss',\n                                     mode='min',\n                                     verbose=1,\n                                     restore_best_weights=True,\n                                 ),\n                                 keras.callbacks.ReduceLROnPlateau(\n                                     monitor='val_loss',\n                                     factor=0.75,\n                                     patience=patience // 2,\n                                     verbose=1,\n                                     mode='min',\n                                 ),\n                                 keras.callbacks.TensorBoard(\n                                     log_dir=os.path.join(\n                                         'gcs',\n                                         'test_rig_pipelines',\n                                         'tensorboards',\n                                         feature,\n                                         TIMESTAMP,\n                                     ),\n                                     histogram_freq=1,\n                                     write_graph=True,\n                                     write_images=True,\n                                     update_freq='epoch',\n                                 )\n                             ])\n    for k, v in history.history.items():\n        history.history[k] = [float(vi) for vi in v]\n        train_metrics.log_metric(k, history.history[k])\n    train_metrics.metadata['feature'] = feature\n    keras_model.metadata['feature'] = feature\n    forecaster.save(keras_model.path + '.h5')\n\n"
+            ],
+            "image": "tensorflow/tensorflow:latest-gpu",
+            "resources": {
+              "accelerator": {
+                "count": "2",
+                "type": "NVIDIA_TESLA_T4"
+              },
+              "cpuLimit": 4.0,
+              "memoryLimit": 16.0
+            }
+          }
+        },
+        "exec-upload-model-to-registry": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "upload_model_to_registry"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'scikit-learn' 'google-cloud-aiplatform' 'protobuf==3.13.0' 'kfp==1.8.14' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef upload_model_to_registry(\n    feature: str,\n    train_data_size: float,\n    lookback: int,\n    lstm_units: int,\n    learning_rate: float,\n    epochs: int,\n    batch_size: int,\n    patience: int,\n    scaler_model: Input[Model],\n    keras_model: Input[Model],\n    metrics: Input[Metrics],\n) -> None:\n    import json\n    import os\n\n    import google.cloud.aiplatform as aip\n    import joblib\n    from tensorflow import keras\n    PROJECT_ID = 'test-rig-349313'\n    REGION = 'europe-west2'\n    DEPLOY_IMAGE = 'europe-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-10'\n    HPARAMS = {\n        'train_data_size': train_data_size,\n        'lookback': lookback,\n        'lstm_units': lstm_units,\n        'learning_rate': learning_rate,\n        'epochs': epochs,\n        'batch_size': batch_size,\n        'patience': patience,\n    }\n\n    scaler = joblib.load(scaler_model.path + '.joblib')\n    joblib.dump(\n        scaler,\n        os.path.join('gcs', 'models_forecasting', f'{feature}.joblib'),\n    )\n    forecaster = keras.models.load_model(keras_model.path + '.h5')\n    forecaster.save(os.path.join('gcs', 'models_forecasting', f'{feature}.h5'))\n    with open(metrics.path + '.json', 'r') as pipeline_metrics_file:\n        eval_metrics_dict = json.load(pipeline_metrics_file)\n    with open(\n            os.path.join('gcs', 'models_forecasting', f'{feature}.json'),\n            'w',\n    ) as registry_metrics_file:\n        registry_metrics_file.write(json.dumps(eval_metrics_dict))\n    with open(\n            os.path.join('gcs', 'forecasting', f'{feature}_params.json'),\n            'w',\n    ) as registry_params_file:\n        registry_params_file.write(json.dumps(HPARAMS))\n    aip.init(project=PROJECT_ID, location=REGION)\n    models = [\n        model.display_name for model in aip.Model.list(\n            project=PROJECT_ID,\n            location=REGION,\n        )\n    ]\n    forecaster.save(\n        os.path.join('gcs', 'models_forecasting', 'registry', feature))\n    if feature not in models:\n        model = aip.Model.upload(\n            project=PROJECT_ID,\n            location=REGION,\n            display_name=feature,\n            artifact_uri=os.path.join('gcs', 'models_forecasting', 'registry',\n                                      feature),\n            serving_container_image_uri=DEPLOY_IMAGE,\n            is_default_version=True,\n        )\n    else:\n        for model in aip.Model.list(project=PROJECT_ID, location=REGION):\n            if model.display_name == feature:\n                model = aip.Model.upload(\n                    project=PROJECT_ID,\n                    location=REGION,\n                    parent_model=model.name,\n                    display_name=feature,\n                    artifact_uri=os.path.join('gcs', 'models_forecasting',\n                                              'registry', feature),\n                    serving_container_image_uri=DEPLOY_IMAGE,\n                    is_default_version=True,\n                )\n                break\n\n"
+            ],
+            "image": "tensorflow/tensorflow:latest"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "training-pipeline"
+    },
+    "root": {
+      "dag": {
+        "outputs": {
+          "artifacts": {
+            "evaluate-eval_metrics": {
+              "artifactSelectors": [
+                {
+                  "outputArtifactKey": "evaluate-eval_metrics",
+                  "producerSubtask": "for-loop-1"
+                }
+              ]
+            },
+            "import-champion-metrics-champion_metrics": {
+              "artifactSelectors": [
+                {
+                  "outputArtifactKey": "import-champion-metrics-champion_metrics",
+                  "producerSubtask": "for-loop-1"
+                }
+              ]
+            },
+            "train-train_metrics": {
+              "artifactSelectors": [
+                {
+                  "outputArtifactKey": "train-train_metrics",
+                  "producerSubtask": "for-loop-1"
+                }
+              ]
+            }
+          }
+        },
+        "tasks": {
+          "build-features": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-build-features"
+            },
+            "dependentTasks": [
+              "importer",
+              "read-raw-data"
+            ],
+            "inputs": {
+              "artifacts": {
+                "interim_data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "interim_data",
+                    "producerTask": "read-raw-data"
+                  }
+                },
+                "interim_features": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "artifact",
+                    "producerTask": "importer"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "build-features"
+            }
+          },
+          "for-loop-1": {
+            "componentRef": {
+              "name": "comp-for-loop-1"
+            },
+            "dependentTasks": [
+              "import-forecast-features",
+              "split-data"
+            ],
+            "inputs": {
+              "artifacts": {
+                "pipelineparam--split-data-test_data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "test_data",
+                    "producerTask": "split-data"
+                  }
+                },
+                "pipelineparam--split-data-train_data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "train_data",
+                    "producerTask": "split-data"
+                  }
+                }
+              },
+              "parameters": {
+                "pipelineparam--batch_size": {
+                  "componentInputParameter": "batch_size"
+                },
+                "pipelineparam--epochs": {
+                  "componentInputParameter": "epochs"
+                },
+                "pipelineparam--import-forecast-features-Output": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "Output",
+                    "producerTask": "import-forecast-features"
+                  }
+                },
+                "pipelineparam--learning_rate": {
+                  "componentInputParameter": "learning_rate"
+                },
+                "pipelineparam--lookback": {
+                  "componentInputParameter": "lookback"
+                },
+                "pipelineparam--lstm_units": {
+                  "componentInputParameter": "lstm_units"
+                },
+                "pipelineparam--patience": {
+                  "componentInputParameter": "patience"
+                },
+                "pipelineparam--train_data_size": {
+                  "componentInputParameter": "train_data_size"
+                }
+              }
+            },
+            "parameterIterator": {
+              "itemInput": "pipelineparam--import-forecast-features-Output-loop-item",
+              "items": {
+                "inputParameter": "pipelineparam--import-forecast-features-Output"
+              }
+            },
+            "taskInfo": {
+              "name": "for-loop-1"
+            }
+          },
+          "import-forecast-features": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-import-forecast-features"
+            },
+            "taskInfo": {
+              "name": "import-forecast-features"
+            }
+          },
+          "importer": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-importer"
+            },
+            "inputs": {
+              "parameters": {
+                "uri": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "gs://test_rig_features/interim_features.json"
+                    }
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "import interim features"
+            }
+          },
+          "read-raw-data": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-read-raw-data"
+            },
+            "taskInfo": {
+              "name": "read-raw-data"
+            }
+          },
+          "split-data": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-split-data"
+            },
+            "dependentTasks": [
+              "build-features"
+            ],
+            "inputs": {
+              "artifacts": {
+                "processed_data": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "processed_data",
+                    "producerTask": "build-features"
+                  }
+                }
+              },
+              "parameters": {
+                "train_data_size": {
+                  "componentInputParameter": "train_data_size"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "split-data"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "batch_size": {
+            "type": "INT"
+          },
+          "epochs": {
+            "type": "INT"
+          },
+          "learning_rate": {
+            "type": "DOUBLE"
+          },
+          "lookback": {
+            "type": "INT"
+          },
+          "lstm_units": {
+            "type": "INT"
+          },
+          "patience": {
+            "type": "INT"
+          },
+          "train_data_size": {
+            "type": "DOUBLE"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "evaluate-eval_metrics": {
+            "artifactType": {
+              "schemaTitle": "system.Metrics",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "import-champion-metrics-champion_metrics": {
+            "artifactType": {
+              "schemaTitle": "system.Metrics",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "train-train_metrics": {
+            "artifactType": {
+              "schemaTitle": "system.Metrics",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.8.14"
+  },
+  "runtimeConfig": {
+    "gcsOutputDirectory": "gs://test_rig_pipelines"
+  }
+}

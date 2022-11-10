@@ -11,6 +11,13 @@ from kfp.v2.dsl import Input, Metrics, Model, component
 )
 def upload_model_to_registry(
     feature: str,
+    train_data_size: float,
+    lookback: int,
+    lstm_units: int,
+    learning_rate: float,
+    epochs: int,
+    batch_size: int,
+    patience: int,
     scaler_model: Input[Model],
     keras_model: Input[Model],
     metrics: Input[Metrics],
@@ -24,6 +31,15 @@ def upload_model_to_registry(
     PROJECT_ID = 'test-rig-349313'
     REGION = 'europe-west2'
     DEPLOY_IMAGE = 'europe-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-10'
+    HPARAMS = {
+        'train_data_size': train_data_size,
+        'lookback': lookback,
+        'lstm_units': lstm_units,
+        'learning_rate': learning_rate,
+        'epochs': epochs,
+        'batch_size': batch_size,
+        'patience': patience,
+    }
 
     scaler = joblib.load(scaler_model.path + '.joblib')
     joblib.dump(
@@ -34,9 +50,16 @@ def upload_model_to_registry(
     forecaster.save(os.path.join('gcs', 'models_forecasting', f'{feature}.h5'))
     with open(metrics.path + '.json', 'r') as pipeline_metrics_file:
         eval_metrics_dict = json.load(pipeline_metrics_file)
-    with open(os.path.join('gcs', 'models_forecasting', f'{feature}.json'),
-              'w') as registry_metrics_file:
+    with open(
+            os.path.join('gcs', 'models_forecasting', f'{feature}.json'),
+            'w',
+    ) as registry_metrics_file:
         registry_metrics_file.write(json.dumps(eval_metrics_dict))
+    with open(
+            os.path.join('gcs', 'forecasting', f'{feature}_params.json'),
+            'w',
+    ) as registry_params_file:
+        registry_params_file.write(json.dumps(HPARAMS))
     aip.init(project=PROJECT_ID, location=REGION)
     models = [
         model.display_name for model in aip.Model.list(
