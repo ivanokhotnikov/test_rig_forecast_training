@@ -116,6 +116,9 @@ if __name__ == '__main__':
         pipeline_func=training_pipeline,
         package_path='training_pipeline.json',
     )
+    os.system(
+        f'gsutil cp training_pipeline.json {PIPELINES_BUCKET_URI}/compiled_pipelines'
+    )
     if not args.compile_only:
         aip.init(
             project=PROJECT_ID,

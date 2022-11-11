@@ -56,7 +56,8 @@ def upload_model_to_registry(
     ) as registry_metrics_file:
         registry_metrics_file.write(json.dumps(eval_metrics_dict))
     with open(
-            os.path.join('gcs', 'forecasting', f'{feature}_params.json'),
+            os.path.join('gcs', 'models_forecasting',
+                         f'{feature}_params.json'),
             'w',
     ) as registry_params_file:
         registry_params_file.write(json.dumps(HPARAMS))
