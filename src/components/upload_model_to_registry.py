@@ -22,6 +22,23 @@ def upload_model_to_registry(
     keras_model: Input[Model],
     metrics: Input[Metrics],
 ) -> None:
+    """
+    Uploads the scaler and keras models to the models registry. Uploads the parameters and metrics of the model.
+
+    Args:
+    feature (str): Feature string to train on
+    train_data_size (str): Proportion of train/test split
+    lookback (int): Length of the lookback window
+    lstm_units (int): Number of the LSTM units in the RNN
+    learning_rate (float): Initial learning rate
+    epochs (int): Number of epochs to train
+    batch_size (int): Batch size
+    patience (int): Number of patient epochs before the callbacks activate
+    train_data (Input[Dataset]): Train dataset
+    scaler_model (Output[Model]): Scaler model
+    keras_model (Output[Model]): Keras model
+    metrics (Output[Metrics]): Evaluation metrics
+    """
     import json
     import os
 

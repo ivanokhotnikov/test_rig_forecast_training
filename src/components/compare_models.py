@@ -9,7 +9,17 @@ def compare_models(
     absolute_difference: float = 0.0,
 ) -> bool:
     """
+    Compares evaluation metrics of the trained (challenger) model and the champion (the one in the model registry)
     https://github.com/GoogleCloudPlatform/vertex-pipelines-end-to-end-samples/blob/main/pipelines/kfp_components/evaluation/compare_models.py
+
+    Args:
+        challenger_metrics (Input[Metrics]): Challenger metrics
+        champion_metrics (Input[Metrics]): Champion metrics
+        evaluation_metric (str): Evaluation metrics to use for comparison, default 'root_mean_squared_error'
+        absolute_difference (float): The difference to use in comparison, default 0.0
+    
+    Returns:
+        chal_is_better (bool): True if challenger has superior metrics than the champion
     """
     import json
     import logging

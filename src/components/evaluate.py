@@ -23,7 +23,7 @@ def evaluate(
     keras_model: Input[Model],
     eval_metrics: Output[Metrics],
 ) -> None:
-    """Evaluates the trained keras model, saves the evaludation metrics to the metadata store
+    """Evaluates the trained keras model, saves the evaluation metrics to the metadata store
 
     Args:
         feature (str): Feature string to train on

@@ -9,7 +9,7 @@ def read_raw_data(
     interim_data: Output[Dataset],
     raw_features: Output[Artifact],
 ) -> None:
-    """Read raw data files from the GCS bucket, specified by `bucket_name`. Uploads the combined data frame to the interim data directory in the GCS bucket.
+    """Read raw data files from the GCS raw data bucket storage. Uploads the combined data frame to the interim data directory in the GCS bucket.
 
     Args:
         interim_data (Output[Dataset]): Interim data
@@ -72,7 +72,7 @@ def read_raw_data(
         interim_data.path + '.csv',
         index=False,
     )
-    logging.info('Interim dataframe uploaded to the piepline metadata store')
+    logging.info('Interim dataframe uploaded to the pipeline metadata store')
     final_df.to_csv(
         os.path.join('gcs', 'test_rig_interim_data', 'interim_data.csv'),
         index=False,
@@ -81,8 +81,7 @@ def read_raw_data(
     with open(raw_features.path + '.json', 'w') as features_file:
         json.dump(final_df.columns.to_list(), features_file)
     logging.info('Raw features uploaded to the pipeline metadata store')
-    with open(
-            os.path.join('gcs', 'test_rig_features',
-                         'raw_features.json'), 'w') as features_file:
+    with open(os.path.join('gcs', 'test_rig_features', 'raw_features.json'),
+              'w') as features_file:
         json.dump(final_df.columns.to_list(), features_file)
-    logging.info('Raw features uploaded to the featues store')
+    logging.info('Raw features uploaded to the features store')

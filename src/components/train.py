@@ -23,7 +23,7 @@ def train(
     keras_model: Output[Model],
     train_metrics: Output[Metrics],
 ) -> None:
-    """Instantiates, trains the RNN model on the train dataset. Saves the trained scaler and the keras model to the metadata store, saves the evaluation metrics file as well.
+    """Instantiates, trains the RNN model on the train dataset. Saves the trained scaler and the keras model to the metadata store, logs the training metrics and tensorboard event file.
 
     Args:
         feature (str): Feature string to train on
