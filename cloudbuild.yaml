@@ -6,13 +6,13 @@ steps:
         "-f",
         "training.dockerfile",
         "-t",
-        "gcr.io/$PROJECT_ID/forecasting-training",
+        "gcr.io/$PROJECT_ID/forecasting-training:$SHORT_SHA",
         "--network=cloudbuild",
         ".",
       ]
     id: "build container image"
   - name: "gcr.io/cloud-builders/docker"
-    args: ["push", "gcr.io/$PROJECT_ID/forecasting-training"]
+    args: ["push", "gcr.io/$PROJECT_ID/forecasting-training:$SHORT_SHA"]
     id: "push container image to container registry"
   - name: "gcr.io/cloud-builders/gsutil"
     args: ["cp", "gs://gcloud_keys/key.json", "/workspace/gcloud_keys/key.json"]
@@ -24,12 +24,12 @@ steps:
         "GOOGLE_APPLICATION_CREDENTIALS=/gcloud_keys/key.json",
         "-v",
         "/workspace/gcloud_keys:/gcloud_keys:ro",
-        "gcr.io/$PROJECT_ID/forecasting-training",
+        "gcr.io/$PROJECT_ID/forecasting-training:$SHORT_SHA",
       ]
     id: "run container"
-timeout: 3600s
 images:
   - gcr.io/$PROJECT_ID/forecasting-training
 options:
   machineType: "E2_HIGHCPU_8"
   logging: CLOUD_LOGGING_ONLY
+timeout: 3600s
