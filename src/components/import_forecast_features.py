@@ -4,7 +4,7 @@ from utils.dependencies import PYTHON310
 
 
 @component(base_image=PYTHON310)
-def import_forecast_features(features_path: str) -> str:
+def import_forecast_features(features_path: str) -> list:
     """
     The import_forecast_features function imports the forecast features from a JSON file.
     The function returns a string representation of the imported forecast features.
