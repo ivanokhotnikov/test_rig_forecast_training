@@ -20,4 +20,4 @@ def import_forecast_features(features_path: str) -> str:
     with open(os.path.join(features_path, 'forecast_features.json'),
               'r') as final_features_file:
         forecast_features = json.loads(final_features_file.read())
-    return json.dumps(forecast_features)
+    return forecast_features
