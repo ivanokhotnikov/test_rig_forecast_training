@@ -27,15 +27,6 @@ steps:
         "gcr.io/$PROJECT_ID/forecasting-training:$SHORT_SHA",
       ]
     id: "run container"
-  - name: "gcr.io/cloud-builders/gsutil"
-    args:
-      [
-        "-m",
-        "rsync",
-        "-r",
-        "/workspace/compiled/",
-        "gs://test_rig_pipelines/compiled_pipelines/",
-      ]
 images:
   - gcr.io/$PROJECT_ID/forecasting-training
 options:
