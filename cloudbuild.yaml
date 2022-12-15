@@ -30,6 +30,5 @@ steps:
 images:
   - gcr.io/$PROJECT_ID/forecasting-training
 options:
-  machineType: "E2_HIGHCPU_8"
   logging: CLOUD_LOGGING_ONLY
 timeout: 3600s

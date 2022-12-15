@@ -1,6 +1,6 @@
 FROM python:3.10-slim
-COPY /configs /app/config
+COPY /configs/prod.txt /app/config/prod.txt
 COPY /src /app/src
-RUN pip install --no-cache-dir -r app/config/requirements.txt
+RUN pip install --no-cache-dir -r app/config/prod.txt
 WORKDIR /app
-ENTRYPOINT ["python", "src/training.py"]
+ENTRYPOINT ["make", "default_run"]

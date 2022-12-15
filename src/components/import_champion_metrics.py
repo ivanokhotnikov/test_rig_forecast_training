@@ -1,11 +1,20 @@
-from kfp.v2.dsl import component, Output, Metrics
+from utils.dependencies import PYTHON310
+from kfp.v2.dsl import Metrics, Output, component
 
 
-@component(base_image='python:3.10-slim')
-def import_champion_metrics(
-    feature: str,
-    champion_metrics: Output[Metrics],
-):
+@component(base_image=PYTHON310)
+def import_champion_metrics(feature: str,
+                            champion_metrics: Output[Metrics]) -> None:
+    """
+    The import_champion_metrics function imports the champion model's metrics from a JSON file
+    and adds them to the champion model's metadata. The function takes two arguments:
+        - feature: A string indicating which feature is being modeled.
+        - champion_metrics: An Output object representing the pipeline's metrics for this feature.
+    
+    Args:
+        feature: str: Specify the feature that is being forecasted
+        champion_metrics: Output[Metrics]: Store the champion model's metrics
+    """
     import json
     import os
 

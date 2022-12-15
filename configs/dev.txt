@@ -1,0 +1,9 @@
+kfp==1.8.17
+google-cloud-aiplatform==1.19.1
+pandas==1.5.2
+scikit-learn==1.2.0
+openpyxl==3.0.10
+google-cloud-pipeline-components==1.0.29
+tensorflow==2.10
+yapf==0.32.0
+ipykernel==6.19.2

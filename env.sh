@@ -1,0 +1,11 @@
+export PROJECT_ID=test-rig-349313
+export PROJECT_NUMBER=42869708044
+export REGION=europe-west2
+export RAW_DATA_PATH=gcs/test_rig_raw_data
+export INTERIM_DATA_PATH=gcs/test_rig_interim_data
+export PROCESSED_DATA_PATH=gcs/test_rig_processed_data
+export MODELS_PATH=gcs/models_forecasting
+export PIPELINES_PATH=gcs/test_rig_pipelines
+export PIPELINES_URI=gs://test_rig_pipelines
+export FEATURES_PATH=gcs/test_rig_features
+export DEPLOY_IMAGE=europe-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-10

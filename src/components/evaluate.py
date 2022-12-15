@@ -1,71 +1,40 @@
 from kfp.v2.dsl import Dataset, Input, Metrics, Model, Output, component
 
+from utils.dependencies import (GOOGLE_CLOUD_AIPLATFORM, PANDAS, PROTOBUF,
+                                SKLEARN, TF_TRAIN_GPU_IMAGE)
+
 
 @component(
-    base_image='tensorflow/tensorflow:latest-gpu',
-    packages_to_install=[
-        'pandas',
-        'scikit-learn',
-        'google-cloud-aiplatform',
-        'protobuf==3.13.0',
-    ],
-)
-def evaluate(
-    feature: str,
-    lookback: int,
-    lstm_units: int,
-    learning_rate: float,
-    epochs: int,
-    batch_size: int,
-    patience: int,
-    test_data: Input[Dataset],
-    scaler_model: Input[Model],
-    keras_model: Input[Model],
-    eval_metrics: Output[Metrics],
-) -> None:
-    """Evaluates the trained keras model, saves the evaluation metrics to the metadata store
-
+    base_image=TF_TRAIN_GPU_IMAGE,
+    packages_to_install=[PANDAS, SKLEARN, GOOGLE_CLOUD_AIPLATFORM, PROTOBUF])
+def evaluate(project_id: str, region: str, feature: str, lookback: int,
+             batch_size: int, timestamp: str, test_data: Input[Dataset],
+             scaler_model: Input[Model], keras_model: Input[Model],
+             eval_metrics: Output[Metrics]) -> None:
+    """
+    The evaluate function loads the test data, creates a scaler model and a keras model from the training data, and evaluates them against the test data.
+    
     Args:
-        feature (str): Feature string to train on
-        lookback (int): Length of the lookback window
-        lstm_units (int): Number of the LSTM units in the RNN
-        learning_rate (float): Initial learning rate
-        epochs (int): Number of epochs to train
-        batch_size (int): Batch size
-        patience (int): Number of patient epochs before the callbacks activate
-        test_data (Input[Dataset]): Train dataset
-        scaler_model (Input[Model]): Scaler model
-        keras_model (Input[Model]): Keras model
-        eval_metrics (Output[Metrics]): Metrics
+        project_id: str: Specify the project id where the ai platform training and prediction resources will be created
+        region: str: Specify the region in which to run the training job
+        feature: str: Identify the feature being evaluated
+        lookback: int: Specify how many previous time steps to use as input variables to predict the next time period
+        batch_size: int: Specify the number of samples to work on before updating the model
+        timestamp: str: Tag the evaluation metrics file with a timestamp
+        test_data: Input[Dataset]: Pass the test data to the evaluate function
+        scaler_model: Input[Model]: Save the scaler model to gcs
+        keras_model: Input[Model]: Pass the trained model to the evaluate function
+        eval_metrics: Output[Metrics]: Log the metrics to ai platform
     """
     import json
-    from datetime import datetime
 
     import google.cloud.aiplatform as aip
     import joblib
     import numpy as np
     import pandas as pd
     from tensorflow import keras
-
-    PROJECT_ID = 'test-rig-349313'
-    REGION = 'europe-west2'
-    EXP_NAME = feature.lower().replace('_', '-')
-    TIMESTAMP = datetime.now().strftime('%Y%m%d%H%M%S')
-    EVAL_TIMESTAMP = datetime.now().strftime('%H:%M:%S %a %d %b %Y')
-    HPARAMS = {
-        'lookback': lookback,
-        'lstm_units': lstm_units,
-        'learning_rate': learning_rate,
-        'epochs': epochs,
-        'batch_size': batch_size,
-        'patience': patience,
-    }
-    aip.init(
-        experiment=EXP_NAME,
-        project=PROJECT_ID,
-        location=REGION,
-    )
-    aip.start_run(run=TIMESTAMP)
+    aip.init(project_id=project_id, location=region, experiment=timestamp)
+    aip.start_run(run=feature.lower().replace('_', '-'), resume=True)
     test_df = pd.read_csv(test_data.path + '.csv', index_col=False)
     test_data = test_df[feature].values.reshape(-1, 1)
     scaler = joblib.load(scaler_model.path + '.joblib')
@@ -82,13 +51,11 @@ def evaluate(
                                   verbose=1,
                                   batch_size=batch_size,
                                   return_dict=True)
-    results['evaluation_timestamp'] = EVAL_TIMESTAMP
+    aip.log_metrics(results)
+    results['timestamp'] = timestamp
     with open(eval_metrics.path + '.json', 'w') as metrics_file:
         metrics_file.write(json.dumps(results))
     for k, v in results.items():
         eval_metrics.log_metric(k, v)
-        aip.log_metrics({k: v})
-    for k, v in HPARAMS.items():
-        aip.log_params({k: v})
     eval_metrics.metadata['feature'] = feature
     aip.end_run()

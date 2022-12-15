@@ -1,24 +1,24 @@
 from kfp.v2.dsl import Artifact, Dataset, Input, Output, component
 
+from utils.dependencies import PANDAS, PYTHON310
 
-@component(
-    base_image='python:3.10-slim',
-    packages_to_install=['pandas'],
-)
-def build_features(
-    interim_features: Input[Artifact],
-    interim_data: Input[Dataset],
-    processed_data: Output[Dataset],
-    processed_features: Output[Artifact],
-) -> None:
+
+@component(base_image=PYTHON310, packages_to_install=[PANDAS])
+def build_features(features_path: str, processed_data_path: str,
+                   interim_features: Input[Artifact],
+                   interim_data: Input[Dataset],
+                   processed_data: Output[Dataset],
+                   processed_features: Output[Artifact]) -> None:
     """
-    Read the interim data, build features (float down casting, removes NaNs and the step zero data, calculates and adds to the processed data the power and time features), saves the processed data.
-
+    The build_features function reads the interim data from the interim storage, applies a series of transformations to it and writes two files: processed_data.csv and processed_features.json in the processed data storage and metadata store respectively.
+    
     Args:
-        processed_features (Input[Artifact]): Raw features json artifact
-        interim_data (Input[Dataset]): Interim dataset
-        processed_data (Output[Dataset]): Processed dataset
-        processed_features (Output[Artifact]): Processed features
+        features_path: str: Store the processed features in a file
+        processed_data_path: str: Store the processed data in a blob storage
+        interim_features: Input[Artifact]: Pass the list of features from the interim data storage to the build_features function
+        interim_data: Input[Dataset]: Pass the data to the function
+        processed_data: Output[Dataset]: Store the processed data in the pipeline metadata store
+        processed_features: Output[Artifact]: Upload the processed features to the pipeline metadata store
     """
     import json
     import logging
@@ -32,22 +32,16 @@ def build_features(
     no_time_features = [
         f for f in interim_features_list if f not in ('TIME', ' DATE', 'DATE')
     ]
-    df = pd.read_csv(
-        interim_data.path + '.csv',
-        usecols=interim_features_list,
-        header=0,
-        index_col=False,
-        low_memory=False,
-    )
+    df = pd.read_csv(interim_data.path + '.csv',
+                     usecols=interim_features_list,
+                     header=0,
+                     index_col=False,
+                     low_memory=False)
     logging.info(f'Interim dataframe was read')
     df[no_time_features] = df[no_time_features].apply(pd.to_numeric,
                                                       errors='coerce',
                                                       downcast='float')
-    df.dropna(
-        axis=0,
-        inplace=True,
-        subset=no_time_features,
-    )
+    df.dropna(axis=0, inplace=True, subset=no_time_features)
     df.drop(columns='DATE', inplace=True, errors='ignore')
     df.drop(columns=' DATE', inplace=True, errors='ignore')
     df.drop(columns='DURATION', inplace=True, errors='ignore')
@@ -79,21 +73,15 @@ def build_features(
     logging.info(f'Time features added')
     df.columns = df.columns.str.lstrip()
     df.columns = df.columns.str.replace(' ', '_')
-    df.to_csv(
-        os.path.join('gcs', 'test_rig_processed_data', 'processed_data.csv'),
-        index=False,
-    )
+    df.to_csv(os.path.join(processed_data_path, 'processed_data.csv'),
+              index=False)
     logging.info(f'Processed dataframe uploaded to processed data storage')
-    df.to_csv(
-        processed_data.path + '.csv',
-        index=False,
-    )
+    df.to_csv(processed_data.path + '.csv', index=False)
     logging.info(f'Processed dataframe uploaded to metadata store')
     with open(processed_features.path + '.json', 'w') as features_file:
         json.dump(df.columns.to_list(), features_file)
     logging.info('Processed features uploaded to the pipeline metadata store')
-    with open(
-            os.path.join('gcs', 'test_rig_features',
-                         'processed_features.json'), 'w') as features_file:
+    with open(os.path.join(features_path, 'processed_features.json'),
+              'w') as features_file:
         json.dump(df.columns.to_list(), features_file)
     logging.info('Processed features uploaded to the featues store')

@@ -1,13 +1,12 @@
+from utils.dependencies import PYTHON310
 from kfp.v2.dsl import Input, Metrics, component
 
 
-@component(base_image='python:3.10-slim')
-def compare_models(
-    challenger_metrics: Input[Metrics],
-    champion_metrics: Input[Metrics],
-    evaluation_metric: str = 'root_mean_squared_error',
-    absolute_difference: float = 0.0,
-) -> bool:
+@component(base_image=PYTHON310)
+def compare_models(challenger_metrics: Input[Metrics],
+                   champion_metrics: Input[Metrics],
+                   evaluation_metric: str = 'root_mean_squared_error',
+                   absolute_difference: float = 0.0) -> bool:
     """
     Compares evaluation metrics of the trained (challenger) model and the champion (the one in the model registry)
     https://github.com/GoogleCloudPlatform/vertex-pipelines-end-to-end-samples/blob/main/pipelines/kfp_components/evaluation/compare_models.py

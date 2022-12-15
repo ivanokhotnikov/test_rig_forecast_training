@@ -1,0 +1,2 @@
+kfp==1.8.17
+google-cloud-aiplatform==1.19.1
