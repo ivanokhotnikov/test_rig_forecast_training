@@ -33,7 +33,6 @@ steps:
         "-m",
         "rsync",
         "-r",
-        "-d",
         "/workspace/compiled/",
         "gs://test_rig_pipelines/compiled_pipelines/",
       ]
