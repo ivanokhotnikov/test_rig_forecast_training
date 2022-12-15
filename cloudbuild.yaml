@@ -30,8 +30,8 @@ steps:
   - name: "gcr.io/cloud-builders/gsutil"
     args:
       [
-        "rsync",
         "-m",
+        "rsync",
         "-r",
         "-d",
         "/workspace/compiled/",
