@@ -3,14 +3,11 @@ include env.sh
 export
 
 compile:
-	$$(mkdir -p ./logs/$@)
 	$$(mkdir -p ./compiled)
-	python src/training.py --timestamp $(timestamp) --compile_only &> ./logs/$@/$(timestamp).log
-	gsutil cp ./compiled/training_$(timestamp).json $(PIPELINES_URI)/compiled_pipelines &>> ./logs/$@/$(timestamp).log
+	python src/training.py --timestamp $(timestamp) --compile_only
 
 clean_vertex:
-	$$(mkdir -p ./logs/$@)
-	python src/utils/clean_vertex.py --all &> ./logs/$@/$(timestamp).log
+	python src/utils/clean_vertex.py --all
 
 clean_local:
 	rm -rf logs compiled
@@ -20,17 +17,15 @@ clean_all:
 	@ $(MAKE) clean_local
 
 default_run:
-	$$(mkdir -p ./logs/$@)
 	$$(mkdir -p ./compiled)
-	python src/training.py --timestamp $(timestamp) --enable_caching &> ./logs/$@/$(timestamp).log
-	gsutil cp ./compiled/training_$(timestamp).json $(PIPELINES_URI)/compiled_pipelines &>> ./logs/$@/$(timestamp).log
+	python src/training.py --timestamp $(timestamp) --enable_caching
+
+sync:
+	gsutil rsync -m -r -d ./compiled $(PIPELINES_URI)/compiled_pipelines
 
 custom_run:
-	$$(mkdir -p ./logs/$@)
 	$$(mkdir -p ./compiled)
-	python src/training.py $(params) --timestamp $(timestamp) &> ./logs/$@/$(timestamp).log
-	printf 'Training parameters\n$(params) $(timestamp)' &>> ./logs/$@/$(timestamp).log
-	gsutil cp ./compiled/training_$(timestamp).json $(PIPELINES_URI)/compiled_pipelines &>> ./logs/$@/$(timestamp).log
+	python src/training.py $(params) --timestamp $(timestamp)
 
 download_tensorboards:
 	$$(mkdir -p ./logs/tensorboards)
