@@ -33,7 +33,7 @@ def evaluate(project_id: str, region: str, feature: str, lookback: int,
     import numpy as np
     import pandas as pd
     from tensorflow import keras
-    aip.init(project_id=project_id, location=region, experiment=timestamp)
+    aip.init(project=project_id, location=region, experiment=timestamp)
     aip.start_run(run=feature.lower().replace('_', '-'), resume=True)
     test_df = pd.read_csv(test_data.path + '.csv', index_col=False)
     test_data = test_df[feature].values.reshape(-1, 1)

@@ -33,8 +33,6 @@ download_tensorboards:
 
 local_env: configs/dev.txt
 	python -m venv .venv
-	( \
-		source ./.venv/Scripts/activate; \
-		python -m pip install --upgrade pip setuptools; \
-		pip install -r configs/dev.txt; \
-	)
+	source ./.venv/Scripts/activate && \
+	python -m pip install --upgrade pip setuptools && \
+	pip install -r configs/dev.txt
