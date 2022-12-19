@@ -1,12 +1,14 @@
 from kfp.v2.dsl import (Artifact, Dataset, Input, Metrics, Model, Output,
                         component)
 
-from utils.dependencies import PANDAS, PROTOBUF, SKLEARN, TF_TRAIN_GPU_IMAGE, GOOGLE_CLOUD_AIPLATFORM
+from utils.dependencies import (GOOGLE_CLOUD_AIPLATFORM, PANDAS, PROTOBUF,
+                                PYARROW, SKLEARN, TF_TRAIN_GPU_IMAGE)
 
 
-@component(
-    base_image=TF_TRAIN_GPU_IMAGE,
-    packages_to_install=[PANDAS, SKLEARN, PROTOBUF, GOOGLE_CLOUD_AIPLATFORM])
+@component(base_image=TF_TRAIN_GPU_IMAGE,
+           packages_to_install=[
+               PANDAS, SKLEARN, PROTOBUF, GOOGLE_CLOUD_AIPLATFORM, PYARROW
+           ])
 def train(project_id: str, region: str, feature: str, lookback: int,
           lstm_units: int, learning_rate: float, epochs: int, batch_size: int,
           patience: int, timestamp: str, train_data_size: float,
@@ -21,7 +23,7 @@ def train(project_id: str, region: str, feature: str, lookback: int,
         project_id: str: Specify the project id where the ai platform training and prediction resources will be created
         region: str: Specify the region in which to run the training job
         feature: str: Identify the model
-        lookback: int: Determine how many previous time steps to use as input variables for the model
+        lookback: int: Determine how many pr2evious time steps to use as input variables for the model
         lstm_units: int: Define the number of units in the lstm layer
         learning_rate: float: Control the step size in updating the weights
         epochs: int: Specify the number of epochs to train for
@@ -39,14 +41,14 @@ def train(project_id: str, region: str, feature: str, lookback: int,
     import json
     import os
 
+    import google.cloud.aiplatform as aip
     import joblib
     import numpy as np
     import pandas as pd
     from sklearn.preprocessing import MinMaxScaler
     from tensorflow import keras
-    import google.cloud.aiplatform as aip
 
-    train_df = pd.read_csv(train_data.path + '.csv', index_col=False)
+    train_df = pd.read_parquet(train_data.path + '.parquet')
     train_data = train_df[feature].values.reshape(-1, 1)
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaled_train_data = scaler.fit_transform(train_data)
@@ -101,6 +103,13 @@ def train(project_id: str, region: str, feature: str, lookback: int,
     keras_model.metadata['feature'] = feature
     forecaster.save(keras_model.path + '.h5')
     params = {
+        'lookback': lookback,
+        'lstm_units': lstm_units,
+        'learning_rate': learning_rate,
+        'epochs': epochs,
+        'batch_size': batch_size,
+        'patience': patience,
+        'train_data_size': train_data_size,
         **forecaster.get_config(),
         **forecaster.optimizer.get_config(),
         **forecaster.history.params

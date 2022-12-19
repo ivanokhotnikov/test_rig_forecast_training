@@ -143,7 +143,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--patience', type=int, default=50)
     # # Hyper parameters
-    parser.add_argument('--lstm_units', type=int, default=10)
+    parser.add_argument('--lstm_units', type=int, default=15)
     parser.add_argument('--learning_rate', type=float, default=0.01)
     return parser.parse_args()
 

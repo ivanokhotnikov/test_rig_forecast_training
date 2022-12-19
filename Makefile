@@ -31,8 +31,8 @@ download_tensorboards:
 	$$(mkdir -p ./logs/tensorboards)
 	gsutil -m cp -r $(PIPELINES_URI)/tensorboards ./logs
 
-local_env: configs/dev.txt
+local_env: configs/requirements-dev.txt
 	python -m venv .venv
 	source ./.venv/Scripts/activate && \
 	python -m pip install --upgrade pip setuptools && \
-	pip install -r configs/dev.txt
+	pip install -r configs/requirements-dev.txt

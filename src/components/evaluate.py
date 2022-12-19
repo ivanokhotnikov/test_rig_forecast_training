@@ -1,12 +1,13 @@
 from kfp.v2.dsl import Dataset, Input, Metrics, Model, Output, component
 
 from utils.dependencies import (GOOGLE_CLOUD_AIPLATFORM, PANDAS, PROTOBUF,
-                                SKLEARN, TF_TRAIN_GPU_IMAGE)
+                                PYARROW, SKLEARN, TF_TRAIN_GPU_IMAGE)
 
 
-@component(
-    base_image=TF_TRAIN_GPU_IMAGE,
-    packages_to_install=[PANDAS, SKLEARN, GOOGLE_CLOUD_AIPLATFORM, PROTOBUF])
+@component(base_image=TF_TRAIN_GPU_IMAGE,
+           packages_to_install=[
+               PANDAS, SKLEARN, GOOGLE_CLOUD_AIPLATFORM, PROTOBUF, PYARROW
+           ])
 def evaluate(project_id: str, region: str, feature: str, lookback: int,
              batch_size: int, timestamp: str, test_data: Input[Dataset],
              scaler_model: Input[Model], keras_model: Input[Model],
@@ -35,7 +36,7 @@ def evaluate(project_id: str, region: str, feature: str, lookback: int,
     from tensorflow import keras
     aip.init(project=project_id, location=region, experiment=timestamp)
     aip.start_run(run=feature.lower().replace('_', '-'), resume=True)
-    test_df = pd.read_csv(test_data.path + '.csv', index_col=False)
+    test_df = pd.read_parquet(test_data.path + '.parquet')
     test_data = test_df[feature].values.reshape(-1, 1)
     scaler = joblib.load(scaler_model.path + '.joblib')
     scaled_test = scaler.transform(test_data)

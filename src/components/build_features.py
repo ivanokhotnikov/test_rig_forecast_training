@@ -1,9 +1,9 @@
 from kfp.v2.dsl import Artifact, Dataset, Input, Output, component
 
-from utils.dependencies import PANDAS, PYTHON310
+from utils.dependencies import PANDAS, PYARROW, PYTHON310
 
 
-@component(base_image=PYTHON310, packages_to_install=[PANDAS])
+@component(base_image=PYTHON310, packages_to_install=[PANDAS, PYARROW])
 def build_features(features_path: str, processed_data_path: str,
                    interim_features: Input[Artifact],
                    interim_data: Input[Dataset],
@@ -42,9 +42,9 @@ def build_features(features_path: str, processed_data_path: str,
                                                       errors='coerce',
                                                       downcast='float')
     df.dropna(axis=0, inplace=True, subset=no_time_features)
-    df.drop(columns='DATE', inplace=True, errors='ignore')
-    df.drop(columns=' DATE', inplace=True, errors='ignore')
-    df.drop(columns='DURATION', inplace=True, errors='ignore')
+    df.drop(columns=['DATE', ' DATE', 'DURATION', 'NOT USED', 'NOT_USED'],
+            inplace=True,
+            errors='ignore')
     logging.info(f'NAs and date columns droped')
     df = df.drop(df[df['STEP'] == 0].index, axis=0).reset_index(drop=True)
     logging.info(f'Step zero removed')
@@ -67,16 +67,17 @@ def build_features(features_path: str, processed_data_path: str,
     df['GEARBOX_COOLER_POWER'] = (df['M7 RPM'] * df['M7 Torque'] * math.pi /
                                   30 / 1e3).astype(float)
     logging.info(f'Power features added')
+    df['TIME'] = df['TIME'].astype(str)
     df['RUNNING_SECONDS'] = (pd.to_timedelta(range(
         len(df)), unit='s').total_seconds()).astype(int)
     df['RUNNING_HOURS'] = (df['RUNNING_SECONDS'] / 3600).astype(float)
     logging.info(f'Time features added')
     df.columns = df.columns.str.lstrip()
     df.columns = df.columns.str.replace(' ', '_')
-    df.to_csv(os.path.join(processed_data_path, 'processed_data.csv'),
-              index=False)
+    df.to_parquet(os.path.join(processed_data_path, 'processed_data.parquet'),
+                  index=False)
     logging.info(f'Processed dataframe uploaded to processed data storage')
-    df.to_csv(processed_data.path + '.csv', index=False)
+    df.to_parquet(processed_data.path + '.parquet', index=False)
     logging.info(f'Processed dataframe uploaded to metadata store')
     with open(processed_features.path + '.json', 'w') as features_file:
         json.dump(df.columns.to_list(), features_file)

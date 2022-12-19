@@ -1,9 +1,9 @@
 from kfp.v2.dsl import Artifact, Dataset, Output, component
 
-from utils.dependencies import OPENPYXL, PANDAS, PYTHON310
+from utils.dependencies import OPENPYXL, PANDAS, PYARROW, PYTHON310
 
 
-@component(base_image=PYTHON310, packages_to_install=[PANDAS, OPENPYXL])
+@component(base_image=PYTHON310, packages_to_install=[PANDAS, OPENPYXL, PYARROW])
 def read_raw_data(raw_data_path: str, features_path: str,
                   interim_data_path: str, interim_data: Output[Dataset],
                   raw_features: Output[Artifact]) -> None:
@@ -51,7 +51,7 @@ def read_raw_data(raw_data_path: str, features_path: str,
             continue
         logging.info(f'{file} has been read')
         try:
-            unit = int(re.split(r'_|-|/', file)[0][4:].lstrip('HYD0'))
+            unit = int(re.split(r'_|-', file.lstrip('-/HYDhyd0'))[0][-4:])
         except ValueError as err:
             logging.info(f'{err}\n. Cannot parse unit from {file}')
             continue
