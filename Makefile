@@ -20,6 +20,10 @@ default_run:
 	$$(mkdir -p ./compiled)
 	python src/training.py --timestamp $(timestamp) --enable_caching
 
+forced_default_run:
+	$$(mkdir -p ./compiled)
+	python src/training.py --timestamp $(timestamp)
+
 sync:
 	gsutil rsync -m -r -d ./compiled $(PIPELINES_URI)/compiled_pipelines
 

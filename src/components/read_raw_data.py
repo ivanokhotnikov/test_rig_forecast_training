@@ -51,7 +51,7 @@ def read_raw_data(raw_data_path: str, features_path: str,
             continue
         logging.info(f'{file} has been read')
         try:
-            unit = int(re.split(r'_|-', file.lstrip('-/HYDhyd0'))[0][-4:])
+            unit = int(re.split(r'_|-', file.lstrip('-/LN2'))[0][-4:])
         except ValueError as err:
             logging.info(f'{err}\n. Cannot parse unit from {file}')
             continue
